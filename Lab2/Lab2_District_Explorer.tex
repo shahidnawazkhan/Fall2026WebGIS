@@ -175,15 +175,23 @@ Visual Studio Code & With the Live Server extension installed \\
 Browser         & Chrome or Edge, for the developer tools \\
 Git             & Installed and configured with your name and email \\
 Account         & A GitHub account \\
-Data            & The districts shapefile from LMS, about 9 MB zipped \\
+Data            & The districts shapefile from LMS, about 24 MB zipped \\
 \bottomrule
 \end{tabularx}
 
-\begin{keypoint}{Field names in your data}
+\begin{keypoint}{Where the data comes from, and what is in it}
+The layer is the Pakistan Common Operational Dataset for administrative
+boundaries, published by OCHA on the Humanitarian Data Exchange and
+sourced from the World Food Programme. The download bundle covers four
+levels: country, province, district and tehsil. Administrative level 2
+is the district layer, with 160 features. That is the only one you need.
+
 This handout uses the field names \cd{district}, \cd{province},
-\cd{pop\_2023} and \cd{area\_km2}. Open the attribute table in QGIS
-before you start and check what your copy actually uses. If the names
-differ, substitute yours everywhere they appear in the code.
+\cd{pop\_2023} and \cd{area\_km2}. The original dataset names them
+differently, using \cd{ADM2\_EN}, \cd{ADM1\_EN} and a P-code. The copy on
+LMS has already been renamed. Open the attribute table in QGIS before
+you start and confirm. If the names differ, substitute yours everywhere
+they appear in the code.
 \end{keypoint}
 
 
@@ -364,13 +372,24 @@ Fill this in. These are your numbers, not the lecture's.
 \toprule
 \textbf{Version} & \textbf{What was done} & \textbf{Size} & \textbf{\% of A} \\
 \midrule
-Shapefile & All components together           & \hspace{2cm} & n/a \\
+Shapefile & The adm2 \cd{.shp}, \cd{.shx}, \cd{.dbf}, \cd{.prj} and
+            \cd{.cpg} added together & \hspace{2cm} & n/a \\
 A         & Straight conversion               & & \\
 B         & Precision 5                       & & \\
 C         & Simplified 100 m, precision 5     & & \\
 D         & Simplified 1 km, precision 5      & & \\
 \bottomrule
 \end{tabularx}
+
+\paragraph{Measure the layer, not the download}
+The bundle you downloaded holds four administrative levels plus a lines
+layer, so its total size tells you nothing useful. Add up only the adm2
+components. Those are the files your GeoJSON was made from, and they are
+the only fair comparison.
+
+For reference, the published download sizes are 24.3 MB for the
+shapefile bundle and 27.7 MB for the same data as GeoJSON. Note which
+is larger, and say why in your report.
 
 \vspace{1em}
 Copy version C into your project as the one the map will use:
