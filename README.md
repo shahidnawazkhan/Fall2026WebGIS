@@ -14,6 +14,7 @@ _Lecture slides will be added to [Lectures](Lectures/) after each class._
 
 ### Labs
 
+- [Lab 1: Your First Web Map](Lab1/): setting up VS Code, Live Server and Git, a first web page with a Leaflet map, and publishing with GitHub Pages ([handout PDF](Lab1/Lab1_Your_First_Web_Map.pdf))
 - [Lab 2: District Explorer](Lab2/): building a web map from a shapefile with QGIS, GeoJSON and Leaflet ([handout PDF](Lab2/Lab2_District_Explorer.pdf))
 
 _More lab content will be added here as the course progresses._
