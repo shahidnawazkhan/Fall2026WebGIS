@@ -10,6 +10,6 @@ Building a web map of Pakistan's districts from a shapefile, using QGIS, GeoJSON
 | `code/index.html` | Page structure |
 | `code/style.css` | Page styling |
 | `code/app.js` | Map, classification, popups, legend and province filter (finished version, Parts 5 to 8) |
-| `code/data/districts.geojson` | District boundaries (version C, 160 districts); population not yet joined |
+| `code/data/districts.geojson` | District boundaries (version C, 160 districts) with 2023 census population |
 
 To run the code, open the `code` folder in VS Code and start it with **Live Server**. Opening `index.html` directly from the file system blocks the data request.

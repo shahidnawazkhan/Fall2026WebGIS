@@ -188,10 +188,17 @@ is the district layer, with 160 features. That is the only one you need.
 
 This handout uses the field names \cd{district}, \cd{province},
 \cd{pop\_2023} and \cd{area\_km2}. The original dataset names them
-differently, using \cd{ADM2\_EN}, \cd{ADM1\_EN} and a P-code. The copy on
-LMS has already been renamed. Open the attribute table in QGIS before
+differently, using \cd{adm2\_name}, \cd{adm1\_name}, \cd{adm2\_pcode} and
+\cd{area\_sqkm}, and it has no population at all. The copy on LMS has
+been renamed, and \cd{pop\_2023} has been joined to it from the 2023
+census by matching district names. Open the attribute table in QGIS before
 you start and confirm. If the names differ, substitute yours everywhere
 they appear in the code.
+
+The 2023 census did not cover Azad Kashmir or Gilgit-Baltistan, so the 24
+districts there have no population value. Lehri, in Balochistan, is not
+listed separately in the census tables either. Expect 25 empty values,
+and see Part 7 for how the map handles them.
 \end{keypoint}
 
 
@@ -632,6 +639,41 @@ Leaflet reads GeoJSON correctly on its own. It is only the coordinates
 you type by hand that need care.
 
 
+\subsection{Keep the view on Pakistan}
+
+As it stands, a user can drag the map to Europe or zoom out to the whole
+world. Replace the first line of \cd{app.js} with this:
+
+\codecap{app.js, replacing the L.map line}
+\begin{code}
+const pakistanLimits = L.latLngBounds([21.5, 58.5], [39.0, 80.5]);
+
+const map = L.map('map', {
+  maxBounds: pakistanLimits,
+  maxBoundsViscosity: 1.0,
+  minZoom: 5
+}).setView([30.3753, 69.3451], 5);
+\end{code}
+
+\begin{tabularx}{\textwidth}{@{}L{4.2cm} X@{}}
+\toprule
+\textbf{Option} & \textbf{Effect} \\
+\midrule
+\cd{maxBounds}          & The box the view may not leave \\
+\cd{maxBoundsViscosity} & 1.0 stops dead at the edge; lower values let the
+                          map stretch past it and spring back \\
+\cd{minZoom}            & Stops the user zooming out beyond the country \\
+\bottomrule
+\end{tabularx}
+
+\vspace{.8em}
+Pakistan spans about 23.6 to 37.1\textdegree N and 60.9 to
+77.9\textdegree E. The limits add about two degrees on each side, so that
+border districts are not pressed against the edge of the window. Note the
+order: \cd{L.latLngBounds} takes the south-west corner first, then the
+north-east, each as \cd{[latitude, longitude]}.
+
+
 \subsection{Fetch the file}
 
 Add this below the tile layer.
@@ -825,6 +867,7 @@ function show(value) {
 }
 
 function colourFor(population) {
+  if (population === null || population === undefined) return '#c9cfd1';
   if (population > 3000000) return '#7f2704';
   if (population > 1500000) return '#d94801';
   if (population >  750000) return '#f16913';
@@ -860,6 +903,14 @@ a number by the comparison and classifies correctly. A value with a
 thousands separator, a stray space, or a placeholder such as \cd{"NA"}
 cannot be converted, so every comparison is false and the feature falls
 through to the last line.
+
+\paragraph{Missing is not the same as small}
+The first line of \cd{colourFor} catches districts with no population
+value and paints them grey. Without it, a missing value fails every
+comparison and lands in the lowest class, so Azad Kashmir and
+Gilgit-Baltistan would appear as thinly populated rather than as
+unrecorded. A choropleth should never let the reader mistake ``no data''
+for ``low''.
 
 
 \subsection{Add a popup}
@@ -915,6 +966,8 @@ legend.onAdd = function () {
       '<i style="background:' + colourFor(breaks[i] + 1) + '"></i> ' +
       labels[i] + '<br>';
   }
+  div.innerHTML +=
+    '<i style="background:' + colourFor(null) + '"></i> no census data';
   return div;
 };
 
@@ -1207,6 +1260,11 @@ Districts drawn in the ocean &
 Hairline gaps between districts &
   Simplified without preserving topology. Re-run Simplify with that
   option enabled \\
+Districts in the north are grey &
+  Expected: Azad Kashmir and Gilgit-Baltistan were not covered by the 2023
+  census, so they have no population value \\
+Can drag the map to another country &
+  The \cd{maxBounds} options from Part 5 are missing from \cd{L.map} \\
 Popup shows \cd{undefined} &
   The property name in the popup does not match the attribute table \\
 Page works locally, not when published &

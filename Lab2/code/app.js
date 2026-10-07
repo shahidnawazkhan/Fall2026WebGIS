@@ -25,6 +25,7 @@ function show(value) {
 }
 
 function colourFor(population) {
+  if (population === null || population === undefined) return '#c9cfd1';
   if (population > 3000000) return '#7f2704';
   if (population > 1500000) return '#d94801';
   if (population >  750000) return '#f16913';
@@ -117,6 +118,7 @@ legend.onAdd = function () {
       '<i style="background:' + colourFor(breaks[i] + 1) + '"></i> ' +
       labels[i] + '<br>';
   }
+  div.innerHTML += '<i style="background:' + colourFor(null) + '"></i> no census data';
   return div;
 };
 
