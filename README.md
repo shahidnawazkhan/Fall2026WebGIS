@@ -15,3 +15,7 @@ _More lab content will be added here as the course progresses._
 ### Other Resources
 
 _Additional materials will be added here as the course progresses._
+
+---
+
+**Note:** Some of the content used in this course was prepared with the assistance of [Claude](https://claude.ai), an AI assistant by Anthropic.
