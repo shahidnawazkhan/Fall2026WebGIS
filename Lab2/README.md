@@ -4,7 +4,9 @@ Building a web map of Pakistan's districts from a shapefile, using QGIS, GeoJSON
 
 | Path | Contents |
 |------|----------|
+| `Lab2_District_Explorer.pdf` | Lab handout (compiled PDF) |
 | `Lab2_District_Explorer.tex` | Lab handout (LaTeX source, compile with pdfLaTeX) |
+| `index.html` | Lab page on the course website |
 | `code/index.html` | Page structure |
 | `code/style.css` | Page styling |
 | `code/app.js` | Map, classification, popups, legend and province filter (finished version, Parts 5 to 8) |
