@@ -1,0 +1,1255 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Web GIS Laboratory: District Explorer
+%% Institute of Geographical Information Systems, NUST
+%%
+%% Layout follows "A Psychology Lab Manual" by John Paul Minda
+%% (Overleaf, CC BY 4.0): article class, fullpage margins,
+%% Helvetica throughout, parskip, blue links, no colour boxes.
+%%
+%% COMPILER: pdfLaTeX
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass{article}
+\usepackage{fullpage}
+
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage[scaled=1]{helvet}
+\usepackage[helvet]{sfmath}
+\everymath={\sf}
+
+\usepackage{parskip}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+%% Required by this document but not by the original template.
+%% Encoding first: without T1, < and > inside code print as
+%% inverted punctuation and straight quotes turn curly.
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\fi
+\usepackage{textcomp}
+\usepackage{upquote}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+
+\setlist[enumerate]{itemsep=.25em,topsep=.5em}
+\setlist[itemize]{itemsep=.25em,topsep=.5em}
+\renewcommand{\arraystretch}{1.25}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+%% Inline code. \cd for short tokens, \cdb for long paths and URLs,
+%% which must be allowed to break across lines.
+\urlstyle{tt}
+\newcommand{\cd}[1]{\texttt{#1}}
+\newcommand{\cdb}[1]{\nolinkurl{#1}}
+
+%% Code blocks: a plain rule, no shading, in keeping with the template
+\lstdefinestyle{plain}{
+  basicstyle=\ttfamily\small,
+  frame=single,
+  rulecolor=\color{black!35},
+  framesep=7pt,
+  xleftmargin=7pt,
+  xrightmargin=7pt,
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  upquote=true,
+  aboveskip=1em,
+  belowskip=1em,
+}
+\lstset{style=plain}
+\lstnewenvironment{code}{\lstset{style=plain}}{}
+
+%% Caption for a code block. Deliberately not \paragraph, which is a
+%% run-in heading and would be overlapped by the listing frame.
+\newcommand{\codecap}[1]{%
+  \par\vspace{.9em}\noindent\textbf{#1}\par\vspace{-.6em}}
+
+%% A block that must not be skimmed past: ruled above and below,
+%% with a bold label. Used for warnings and checkpoints.
+\newenvironment{keypoint}[1]
+  {\par\vspace{.7em}\noindent\rule{\linewidth}{.6pt}\par\vspace{.15em}
+   \noindent\textbf{#1}\par\nobreak\vspace{-.3em}}
+  {\par\vspace{.15em}\noindent\rule{\linewidth}{.6pt}\par\vspace{.7em}}
+
+\title{Web GIS Laboratory\\[.3em]\large District Explorer:
+       building a web map from a shapefile}
+\author{Dr.\ Shahid Nawaz Khan\\
+        Institute of Geographical Information Systems\\
+        School of Civil and Environmental Engineering\\
+        National University of Sciences and Technology, Islamabad}
+\date{MS Remote Sensing and GIS}
+
+\setcounter{tocdepth}{2}
+
+\begin{document}
+\maketitle
+
+\begin{tabularx}{\textwidth}{@{}L{3.4cm} X@{}}
+\toprule
+Duration    & 3 hours \\
+Covers      & Both preceding lectures \\
+Software    & QGIS, Visual Studio Code, a browser, Git \\
+Deliverable & A published map and a measurement report \\
+\bottomrule
+\end{tabularx}
+
+\tableofcontents
+
+
+%==============================================================
+\section{Before you begin}
+
+\subsection{What you will build}
+
+A working web map of Pakistan's districts, published at a public URL.
+The finished page lets a user pick a province from a drop-down, redraws
+the map with only those districts, shades each district by population,
+and shows its attributes when clicked.
+
+You will also produce a short measurement report comparing file sizes,
+load times and computed areas, using your own numbers rather than the
+figures quoted in the lecture.
+
+\subsection{Learning outcomes}
+
+By the end of this laboratory you will be able to:
+
+\begin{enumerate}
+  \item Convert a shapefile to GeoJSON and control its size.
+  \item Explain the effect of coordinate precision and simplification on
+        file size, and choose values appropriate to a map's scale.
+  \item Read a GeoJSON file as text and identify its structure and its
+        errors.
+  \item Request a file from JavaScript and inspect it in the browser
+        console.
+  \item Draw, style, classify and filter a vector layer with Leaflet.
+  \item Connect an HTML control to a map through an event listener.
+  \item Measure the difference between an area computed in Web Mercator
+        and one computed in a projected system.
+  \item Publish a static site and read its network activity.
+\end{enumerate}
+
+\subsection{Structure and timing}
+
+Parts 1 to 7 are the core of the laboratory and everyone is expected to
+finish them. Parts 8 and 9 are extensions. If you run short of time,
+complete Part 10 first so that your work is published, then return to
+the extensions.
+
+\vspace{.6em}
+\begin{tabularx}{\textwidth}{@{}c X r@{}}
+\toprule
+\textbf{Part} & \textbf{What you do} & \textbf{Time} \\
+\midrule
+1  & Set up the project                          & 15 min \\
+2  & Prepare the data in QGIS                    & 30 min \\
+3  & Read the data as text                       & 15 min \\
+4  & Build the page                              & 20 min \\
+5  & Load the data with JavaScript               & 20 min \\
+6  & Draw it with Leaflet                        & 25 min \\
+7  & Classify and add a popup                    & 20 min \\
+\midrule
+8  & Filter with a control \textit{(extension)}  & 25 min \\
+9  & Measure the coordinate systems \textit{(extension)} & 20 min \\
+\midrule
+10 & Publish and submit                          & 20 min \\
+\bottomrule
+\end{tabularx}
+
+\subsection{What you need}
+
+\begin{tabularx}{\textwidth}{@{}L{4.2cm} X@{}}
+\toprule
+\textbf{Item} & \textbf{Requirement} \\
+\midrule
+QGIS            & Version 3.28 or later \\
+Visual Studio Code & With the Live Server extension installed \\
+Browser         & Chrome or Edge, for the developer tools \\
+Git             & Installed and configured with your name and email \\
+Account         & A GitHub account \\
+Data            & The districts shapefile from LMS, about 9 MB zipped \\
+\bottomrule
+\end{tabularx}
+
+\begin{keypoint}{Field names in your data}
+This handout uses the field names \cd{district}, \cd{province},
+\cd{pop\_2023} and \cd{area\_km2}. Open the attribute table in QGIS
+before you start and check what your copy actually uses. If the names
+differ, substitute yours everywhere they appear in the code.
+\end{keypoint}
+
+
+%==============================================================
+\section{Set up the project}
+
+\subsection{Create the folder}
+
+Open PowerShell and run:
+
+\begin{code}
+cd C:\
+mkdir webgis-lab
+cd C:\webgis-lab
+mkdir data
+code .
+\end{code}
+
+\begin{keypoint}{Where the folder goes}
+Use \cd{C:\textbackslash webgis-lab}. Do not use Documents, Desktop, or
+any folder inside OneDrive. Those folders are synced, and the sync
+process locks files while a web server is reading them. Spaces in the
+path cause a separate set of problems later.
+\end{keypoint}
+
+
+\subsection{Create the repository}
+
+\begin{enumerate}
+  \item On \cd{github.com}, create a new repository named
+        \cd{webgis-lab-<your-roll-number>}.
+  \item Set it to \textbf{Public}. This is required for free hosting.
+  \item Do not tick any of the initialise options.
+  \item Connect your folder to it:
+\end{enumerate}
+
+\begin{code}
+git init
+git branch -M main
+git remote add origin https://github.com/<your-username>/webgis-lab-<roll>.git
+\end{code}
+
+\subsection{Create the three files}
+
+In the VS Code explorer, create these in \cd{C:\textbackslash webgis-lab}:
+
+\begin{tabularx}{\textwidth}{@{}L{3.4cm} X@{}}
+\toprule
+\textbf{File} & \textbf{Holds} \\
+\midrule
+\cd{index.html} & The structure of the page \\
+\cd{style.css}  & How the page looks \\
+\cd{app.js}     & What the page does \\
+\bottomrule
+\end{tabularx}
+
+\vspace{.8em}
+Keeping the three languages in three files is the normal arrangement
+once a page grows beyond a few lines. The HTML file will link to the
+other two.
+
+\begin{keypoint}{Checkpoint 1}
+A screenshot of VS Code showing the folder \cd{C:\textbackslash
+webgis-lab} with \cd{index.html}, \cd{style.css}, \cd{app.js} and an
+empty \cd{data} folder.
+\end{keypoint}
+
+
+%==============================================================
+\section{Prepare the data in QGIS}
+
+This part produces four versions of the same layer. Record the size of
+each one as you go, because the comparison is part of your report.
+
+\subsection{Inspect what you were given}
+
+\begin{enumerate}
+  \item Unzip the shapefile into a working folder \textbf{outside}
+        \cd{C:\textbackslash webgis-lab}. Raw data is not committed to
+        the repository.
+  \item Load it into QGIS and open the attribute table. Note the field
+        names and their types.
+  \item Open \textbf{Layer Properties}, then \textbf{Information}, and
+        record the coordinate reference system and the feature count.
+  \item In your file manager, note the total size of all the shapefile
+        components together.
+\end{enumerate}
+
+\paragraph{Why the field types matter}
+A population column stored as text rather than as a number will sort and
+compare alphabetically, so 9 will appear greater than 1500. This breaks
+any classification built on it and produces no error. Check the type now
+rather than after your choropleth looks wrong.
+
+
+\subsection{Version A: a straight conversion}
+
+Right-click the layer, choose \textbf{Export}, then \textbf{Save
+Features As}.
+
+\begin{tabularx}{\textwidth}{@{}L{4.6cm} X@{}}
+\toprule
+\textbf{Setting} & \textbf{Value} \\
+\midrule
+Format              & GeoJSON \\
+File name           & \cd{districts\_A.geojson} \\
+CRS                 & EPSG:4326, WGS 84 \\
+Coordinate precision & Leave at the default \\
+\bottomrule
+\end{tabularx}
+
+\vspace{.8em}
+Record the resulting file size.
+
+\begin{keypoint}{Always export in EPSG:4326}
+GeoJSON assumes longitude and latitude in WGS 84. Exporting in any other
+system produces a file that is syntactically valid and silently placed in
+the wrong part of the world. If your data arrived in a projected system,
+this export step is also the reprojection step.
+\end{keypoint}
+
+
+\subsection{Version B: reduced coordinate precision}
+
+Export again. This time, in the \textbf{Layer Options} section of the
+dialog, set \cd{COORDINATE\_PRECISION} to \cd{5}. Name it
+\cd{districts\_B.geojson} and record the size.
+
+\begin{tabularx}{\textwidth}{@{}c X@{}}
+\toprule
+\textbf{Decimal places} & \textbf{Resolves to} \\
+\midrule
+3 & 110 m \\
+4 & 11 m \\
+5 & 1.1 m \\
+6 & 11 cm \\
+\bottomrule
+\end{tabularx}
+
+\vspace{.8em}
+Five decimal places locate a point to about a metre. A district boundary
+digitised from 30 m imagery does not justify more than that, and writing
+more both wastes bandwidth and overstates the accuracy of the data.
+
+\subsection{Versions C and D: simplified geometry}
+
+Use \textbf{Vector}, then \textbf{Geometry Tools}, then
+\textbf{Simplify}. Run it twice on the original layer.
+
+\begin{tabularx}{\textwidth}{@{}L{3cm} L{3.6cm} X@{}}
+\toprule
+\textbf{Version} & \textbf{Tolerance} & \textbf{Intended use} \\
+\midrule
+C & 0.001 degrees, about 100 m & A provincial or national view \\
+D & 0.01 degrees, about 1 km   & A thumbnail or an overview map \\
+\bottomrule
+\end{tabularx}
+
+\vspace{.8em}
+Export each result to GeoJSON with precision 5, as
+\cd{districts\_C.geojson} and \cd{districts\_D.geojson}. Record both
+sizes.
+
+\begin{keypoint}{Gaps along shared borders}
+Simplifying adjacent polygons independently moves their shared borders
+apart, leaving slivers and gaps. In the Simplify dialog, keep
+\textbf{Preserve topology} enabled. If you see hairline gaps between
+districts later, this is the cause.
+\end{keypoint}
+
+
+\subsection{Record your measurements}
+
+Fill this in. These are your numbers, not the lecture's.
+
+\vspace{.6em}
+\begin{tabularx}{\textwidth}{@{}L{2.2cm} X r r@{}}
+\toprule
+\textbf{Version} & \textbf{What was done} & \textbf{Size} & \textbf{\% of A} \\
+\midrule
+Shapefile & All components together           & \hspace{2cm} & n/a \\
+A         & Straight conversion               & & \\
+B         & Precision 5                       & & \\
+C         & Simplified 100 m, precision 5     & & \\
+D         & Simplified 1 km, precision 5      & & \\
+\bottomrule
+\end{tabularx}
+
+\vspace{1em}
+Copy version C into your project as the one the map will use:
+
+\begin{code}
+copy districts_C.geojson C:\webgis-lab\data\districts.geojson
+\end{code}
+
+\begin{keypoint}{Checkpoint 2}
+The completed measurement table, and a screenshot showing versions A and
+D drawn together in QGIS so the loss of detail is visible.
+\end{keypoint}
+
+
+%==============================================================
+\section{Read the data as text}
+
+GeoJSON is a text format, which means you can inspect it directly. This
+is the main practical advantage it has over a shapefile.
+
+\subsection{Open it}
+
+Open \cd{data/districts.geojson} in VS Code. Press
+\cd{Shift+Alt+F} to format it, which puts each item on its own line and
+makes the structure visible.
+
+\begin{keypoint}{Format a copy, not the file you will serve}
+Formatting inserts spaces and line breaks, which can add 30 percent to
+the file size. Format it to read it, then undo with \cd{Ctrl+Z} before
+saving.
+\end{keypoint}
+
+
+\subsection{Find the structure}
+
+Answer these from the file itself:
+
+\begin{enumerate}
+  \item What is the \cd{type} of the outermost object?
+  \item How many entries are in the \cd{features} array? VS Code shows
+        the count if you select the array.
+  \item Take the first feature. What is its geometry \cd{type}?
+  \item How many levels of square bracket are there before the first
+        number in its \cd{coordinates}?
+  \item List the keys inside its \cd{properties}.
+\end{enumerate}
+
+\subsection{Check the coordinate order}
+
+Find the first coordinate pair in the file.
+
+\paragraph{What the numbers should look like}
+Latitude in Pakistan runs from about 24 to 37. Longitude runs from about
+61 to 77.
+
+GeoJSON writes longitude first, so the first number of each pair should
+be in the sixties or seventies, and the second in the twenties or
+thirties. If they are the other way round, the file is wrong and every
+feature will be drawn in the wrong place.
+
+
+\subsection{Check that the rings close}
+
+Take any polygon. Compare the first coordinate pair in its outer ring
+with the last one. They must be identical. A ring that does not close is
+invalid, and some renderers will reject the whole file rather than that
+one feature.
+
+\begin{keypoint}{Checkpoint 3}
+Your five answers from 4.2, plus the first coordinate pair you found and
+a sentence confirming the order is correct.
+\end{keypoint}
+
+
+%==============================================================
+\section{Build the page}
+
+\subsection{index.html}
+
+\codecap{index.html, complete}
+\begin{code}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>District Explorer</title>
+
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <header>
+    <h1>District Explorer</h1>
+    <p class="subtitle">Districts of Pakistan, shaded by population</p>
+  </header>
+
+  <div id="panel">
+    <label for="province">Province</label>
+    <select id="province">
+      <option value="all">All provinces</option>
+    </select>
+    <span id="count">loading...</span>
+  </div>
+
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
+\end{code}
+
+\paragraph{Why the script tags sit at the end of the body}
+A script runs as soon as the browser reaches it. If \cd{app.js} ran
+before the \cd{<div id="map">} existed, it could not find it, and
+Leaflet would report that the map container was not found. Placing the
+scripts last guarantees the elements exist first.
+
+The Leaflet tag must come before \cd{app.js}, because your code uses
+\cd{L}, which Leaflet defines.
+
+
+\subsection{style.css}
+
+\codecap{style.css, complete}
+\begin{code}
+body {
+  font-family: system-ui, sans-serif;
+  margin: 0;
+  color: #23373b;
+  background: #f4f6f6;
+}
+
+header {
+  padding: 18px 24px 10px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.subtitle {
+  margin: 4px 0 0;
+  color: #5b6a6e;
+}
+
+#panel {
+  padding: 10px 24px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+#count {
+  color: #5b6a6e;
+  font-size: 14px;
+}
+
+#map {
+  height: calc(100vh - 150px);
+  width: 100%;
+}
+
+.legend {
+  background: white;
+  padding: 8px 10px;
+  line-height: 20px;
+  border-radius: 4px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.25);
+  font-size: 13px;
+}
+
+.legend i {
+  width: 16px;
+  height: 16px;
+  float: left;
+  margin-right: 8px;
+  opacity: .85;
+}
+\end{code}
+
+\begin{keypoint}{The height rule}
+\cd{\#map} must have a height. An empty \cd{<div>} has zero height, and
+Leaflet will draw a map zero pixels tall into it with no error message
+and a clean console.
+
+\cd{calc(100vh - 150px)} means the full window height minus the space
+taken by the header and panel. If your map does not appear, this line is
+the first thing to check.
+\end{keypoint}
+
+
+\subsection{View it}
+
+Right-click in the editor and choose \textbf{Open with Live Server}.
+Confirm that the address bar reads \cdb{http://127.0.0.1:5500} and not
+\cdb{file:///C:/...}.
+
+\paragraph{Why this matters now rather than later}
+In Part 6 the page will request a file with \cd{fetch}. A browser blocks
+that request for pages opened directly from the file system. Opened that
+way, your data will silently fail to load and the error will not explain
+why.
+
+
+\begin{keypoint}{Checkpoint 4}
+A screenshot showing the header and the empty grey map area, with the
+address bar visible on \cd{127.0.0.1}.
+\end{keypoint}
+
+
+%==============================================================
+\section{Load the data with JavaScript}
+
+\subsection{Create the map}
+
+\codecap{app.js, first version}
+\begin{code}
+const map = L.map('map').setView([30.3753, 69.3451], 5);
+
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 19,
+  attribution: '&copy; OpenStreetMap contributors'
+}).addTo(map);
+\end{code}
+
+Save and reload. You should have a pannable map centred on Pakistan.
+
+\paragraph{Coordinate order, again}
+\cd{setView} takes \cd{[latitude, longitude]}. Your GeoJSON file writes
+\cd{[longitude, latitude]}. The two conventions are both established and
+neither is going to change, so the only defence is knowing which one you
+are addressing.
+
+Leaflet reads GeoJSON correctly on its own. It is only the coordinates
+you type by hand that need care.
+
+
+\subsection{Fetch the file}
+
+Add this below the tile layer.
+
+\codecap{app.js, continued}
+\begin{code}
+let districts = null;
+
+async function loadData() {
+  const response = await fetch('data/districts.geojson');
+
+  if (!response.ok) {
+    console.error('Request failed with status', response.status);
+    return;
+  }
+
+  districts = await response.json();
+
+  console.log('features:', districts.features.length);
+  console.log('first feature:', districts.features[0]);
+  console.log('properties:', districts.features[0].properties);
+}
+
+loadData();
+\end{code}
+
+Open the Console tab in the developer tools and reload.
+
+\begin{enumerate}
+  \item Confirm the feature count matches what QGIS reported.
+  \item Expand \cd{first feature} and walk down to its coordinates.
+  \item Read the property names from \cd{properties}, and confirm they
+        match the ones you will use in the next part.
+\end{enumerate}
+
+\paragraph{What \texttt{await} is doing}
+The file has to travel over the network, which takes time and can fail.
+\cd{await} pauses until the response arrives. Without it, the next line
+would run before the data existed, and \cd{districts} would still be
+\cd{null}.
+
+The \cd{response.ok} check catches the case where the server answered but
+the file was not found. A 404 means the path is wrong; look at your own
+code. A 500 means the server failed; look at the server.
+
+
+\subsection{Try the array methods}
+
+With the page loaded, type these straight into the Console. They operate
+on real data and the results print immediately.
+
+\begin{code}
+districts.features.length
+
+districts.features.map(f => f.properties.district).slice(0, 10)
+
+districts.features.filter(f => f.properties.province === 'Punjab').length
+
+[...new Set(districts.features.map(f => f.properties.province))].sort()
+\end{code}
+
+\begin{tabularx}{\textwidth}{@{}L{3.2cm} X@{}}
+\toprule
+\textbf{Method} & \textbf{Does} \\
+\midrule
+\cd{map}    & Turns every feature into something else, here its name \\
+\cd{filter} & Keeps the features that pass a test \\
+\cd{Set}    & Removes duplicates, giving the list of distinct provinces \\
+\bottomrule
+\end{tabularx}
+
+\vspace{.8em}
+The last line is the one you will use in Part 8 to fill the drop-down,
+so note what it returns.
+
+\begin{keypoint}{Checkpoint 5}
+A screenshot of the Console showing the feature count, the expanded
+first feature, and the list of distinct provinces.
+\end{keypoint}
+
+
+%==============================================================
+\section{Draw it with Leaflet}
+
+\subsection{Add the layer}
+
+Add a \cd{draw} function and call it at the end of \cd{loadData}.
+
+\codecap{app.js, continued}
+\begin{code}
+let layer = null;
+
+function draw(features) {
+  if (layer) {
+    map.removeLayer(layer);
+  }
+
+  layer = L.geoJSON(
+    { type: 'FeatureCollection', features: features },
+    {
+      style: {
+        color: '#ffffff',
+        weight: 1,
+        fillColor: '#8c9ea3',
+        fillOpacity: 0.75
+      }
+    }
+  ).addTo(map);
+
+  if (features.length > 0) {
+    map.fitBounds(layer.getBounds());
+  }
+
+  document.getElementById('count').textContent =
+    features.length + ' districts';
+}
+\end{code}
+
+Then at the end of \cd{loadData}, after the \cd{console.log} lines:
+
+\begin{code}
+  draw(districts.features);
+\end{code}
+
+\noindent In Part 8 you will add one more line immediately above that
+one, so the finished end of \cd{loadData} reads:
+
+\begin{code}
+  fillProvinceList();
+  draw(districts.features);
+\end{code}
+
+\paragraph{Why the two guards are there}
+\cd{removeLayer} runs first because \cd{L.geoJSON(...).addTo(map)} adds a
+layer, it does not replace one. Without it, filtering would stack layers
+on top of each other and the map would slow down with every change.
+
+\cd{fitBounds} is skipped when the list is empty, because an empty layer
+has no bounds and Leaflet throws \cd{Bounds are not valid}, which stops
+the rest of the function from running.
+
+
+
+
+\subsection{Check the network activity}
+
+Open the \textbf{Network} tab, tick \textbf{Disable cache}, and reload.
+
+\begin{enumerate}
+  \item Find the request for \cd{districts.geojson}. Record its size and
+        the time it took.
+  \item Count the requests ending in \cd{.png}. These are map tiles.
+  \item Click one tile and open its \textbf{Preview}. You are looking at
+        a single 256 by 256 pixel square of map.
+  \item Read the three numbers in that tile's URL and identify which is
+        the zoom level.
+  \item Pan the map and watch new tile requests arrive.
+\end{enumerate}
+
+\paragraph{Throttling the connection}
+At the top of the Network tab there is a throttling drop-down, usually
+set to \textbf{No throttling}. Set it to \textbf{Slow 3G} and reload.
+
+The load time you now see is closer to what a user on a mobile
+connection experiences. Record it. Then try the same with
+\cd{districts\_A.geojson} substituted in, and record that too. Set the
+throttle back to \textbf{No throttling} afterwards.
+
+
+\begin{keypoint}{Checkpoint 6}
+A screenshot of the Network tab showing the GeoJSON request with its
+size, and a selected tile request with its Preview visible.
+\end{keypoint}
+
+
+%==============================================================
+\section{Classify and add a popup}
+
+\subsection{Shade by population}
+
+Replace the fixed \cd{fillColor} with a function. Add this above
+\cd{draw}.
+
+\codecap{app.js, continued}
+\begin{code}
+function show(value) {
+  if (value === null || value === undefined || value === '') {
+    return 'not recorded';
+  }
+  return typeof value === 'number' ? value.toLocaleString() : value;
+}
+
+function colourFor(population) {
+  if (population > 3000000) return '#7f2704';
+  if (population > 1500000) return '#d94801';
+  if (population >  750000) return '#f16913';
+  if (population >  300000) return '#fd8d3c';
+  return '#fdd0a2';
+}
+
+function styleFor(feature) {
+  return {
+    color: '#ffffff',
+    weight: 1,
+    fillColor: colourFor(feature.properties.pop_2023),
+    fillOpacity: 0.8
+  };
+}
+\end{code}
+
+Then change the style option inside \cd{draw} to use it:
+
+\begin{code}
+      style: styleFor,
+\end{code}
+
+\paragraph{This is a classification}
+The chain of \cd{if} statements is a manual classification with five
+classes and four break values. Changing the breaks changes the map's
+message, which is why the breaks belong in your report alongside the
+map.
+
+If every district comes out the same colour, inspect the values
+themselves. A plain numeric string such as \cd{"1500000"} is converted to
+a number by the comparison and classifies correctly. A value with a
+thousands separator, a stray space, or a placeholder such as \cd{"NA"}
+cannot be converted, so every comparison is false and the feature falls
+through to the last line.
+
+
+\subsection{Add a popup}
+
+Add an \cd{onEachFeature} option to the \cd{L.geoJSON} call, directly
+after \cd{style}.
+
+\codecap{inside the options object in draw}
+\begin{code}
+      onEachFeature: function (feature, featureLayer) {
+        const p = feature.properties;
+        featureLayer.bindPopup(
+          '<strong>' + show(p.district) + '</strong><br>' +
+          'Province: ' + show(p.province) + '<br>' +
+          'Population: ' + show(p.pop_2023) + '<br>' +
+          'Area: ' + show(p.area_km2) + ' km<sup>2</sup>'
+        );
+      }
+\end{code}
+
+\paragraph{This is a callback}
+You are not running that function. You are handing it to Leaflet, which
+runs it once for every feature as the layer is built. The same idea
+appears again in Part 8 with the drop-down.
+
+
+\begin{keypoint}{Why the popup goes through \texttt{show}}
+Calling \cd{.toLocaleString()} straight on an attribute fails if that
+attribute is \cd{null}, or if the field is named differently in your copy
+of the data. The failure is not limited to one feature: it happens while
+Leaflet is building the layer, so the whole map fails to draw and the
+console reports \cd{Cannot read properties of null}.
+
+\cd{show} returns a readable placeholder instead, so one missing value
+costs you one popup line rather than the entire map.
+\end{keypoint}
+
+
+\subsection{Add a legend}
+
+\codecap{app.js, at the end}
+\begin{code}
+const legend = L.control({ position: 'bottomright' });
+
+legend.onAdd = function () {
+  const div = L.DomUtil.create('div', 'legend');
+  const breaks = [0, 300000, 750000, 1500000, 3000000];
+  const labels = ['under 300k', '300k to 750k', '750k to 1.5m',
+                  '1.5m to 3m', 'over 3m'];
+
+  for (let i = 0; i < breaks.length; i++) {
+    div.innerHTML +=
+      '<i style="background:' + colourFor(breaks[i] + 1) + '"></i> ' +
+      labels[i] + '<br>';
+  }
+  return div;
+};
+
+legend.addTo(map);
+\end{code}
+
+\begin{keypoint}{Checkpoint 7}
+A screenshot of the shaded map with the legend visible and one popup
+open.
+\end{keypoint}
+
+
+%==============================================================
+\section{Filter with a control}
+\textit{Extension exercise}
+
+\subsection{Fill the drop-down from the data}
+
+Add this function, and call it from \cd{loadData} before \cd{draw}.
+
+\codecap{app.js, continued}
+\begin{code}
+function fillProvinceList() {
+  const select = document.getElementById('province');
+
+  const provinces = [...new Set(
+    districts.features.map(f => f.properties.province)
+  )].sort();
+
+  for (const name of provinces) {
+    const option = document.createElement('option');
+    option.value = name;
+    option.textContent = name;
+    select.appendChild(option);
+  }
+}
+\end{code}
+
+\paragraph{Building the list from the data}
+The drop-down is not typed by hand. It is derived from the file, so it
+stays correct if the data changes. This is the same \cd{map} and
+\cd{Set} combination you tried in the Console in Part 6.
+
+
+\subsection{React to the user}
+
+\codecap{app.js, continued}
+\begin{code}
+document.getElementById('province')
+  .addEventListener('change', function (event) {
+    const chosen = event.target.value;
+
+    const subset = chosen === 'all'
+      ? districts.features
+      : districts.features.filter(
+          f => f.properties.province === chosen
+        );
+
+    draw(subset);
+  });
+\end{code}
+
+Reload and change the drop-down. The map should redraw with only the
+chosen province, zoom to it, and update the district count.
+
+\begin{tabularx}{\textwidth}{@{}L{4.4cm} X@{}}
+\toprule
+\textbf{Piece} & \textbf{Role} \\
+\midrule
+\cd{getElementById}    & Finds the element in the page \\
+\cd{addEventListener}  & Registers a function to run later \\
+\cd{'change'}          & The event to wait for \\
+\cd{event.target.value} & What the user chose \\
+\cd{filter}            & Keeps only the matching features \\
+\bottomrule
+\end{tabularx}
+
+\vspace{.8em}
+Every interactive control in a dashboard is a variation on these five
+lines: find an element, listen for an event, filter the data, redraw.
+
+\begin{keypoint}{Checkpoint 8}
+Two screenshots, one showing all provinces and one showing a single
+province selected, with the district count visible in both.
+\end{keypoint}
+
+
+%==============================================================
+\section{Measure the coordinate systems}
+\textit{Extension exercise}
+
+The lecture claimed that an area computed in Web Mercator at this
+latitude is about 40 percent too large. This part tests that claim with
+your own data.
+
+\subsection{Produce two projected copies}
+
+In QGIS, export the original layer twice.
+
+\begin{tabularx}{\textwidth}{@{}L{4.2cm} L{3cm} X@{}}
+\toprule
+\textbf{Export as} & \textbf{CRS} & \textbf{Is} \\
+\midrule
+\cd{d\_3857}  & EPSG:3857  & Web Mercator, what the map is drawn in \\
+\cd{d\_32643} & EPSG:32643 & UTM zone 43N, a projected system for this region \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Compute areas in each}
+
+On each layer, open the \textbf{Field Calculator} and create a new
+decimal field called \cd{area\_calc} with the expression:
+
+\begin{code}
+$area / 1000000
+\end{code}
+
+\cd{\$area} is computed in the layer's own coordinate system, so the two
+layers will give different answers for the same district.
+
+\subsection{Compare}
+
+Pick five districts spread from the south of the country to the north.
+Record their values.
+
+\vspace{.6em}
+\begin{tabularx}{\textwidth}{@{}X r r r r@{}}
+\toprule
+\textbf{District} & \textbf{Latitude} & \textbf{3857 km\textsuperscript{2}}
+& \textbf{UTM km\textsuperscript{2}} & \textbf{\% difference} \\
+\midrule
+ & & & & \\
+ & & & & \\
+ & & & & \\
+ & & & & \\
+ & & & & \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Answer these}
+
+\begin{enumerate}
+  \item Does the percentage difference grow or shrink as you move north?
+  \item The predicted inflation factor is $1/\cos^{2}(\mathrm{latitude})$.
+        Compute it for one of your districts and compare it with the
+        measured difference.
+  \item Which of the two figures would you put in a report, and why?
+\end{enumerate}
+
+\begin{keypoint}{The working rule}
+Store data in EPSG:4326. Display it in EPSG:3857, which the mapping
+library handles for you. Measure in a projected system such as UTM zone
+42N or 43N. Never report an area or a distance computed in Web Mercator.
+\end{keypoint}
+
+
+\begin{keypoint}{Checkpoint 9}
+The completed comparison table and your three answers.
+\end{keypoint}
+
+
+%==============================================================
+\section{Publish and submit}
+
+\subsection{Commit and push}
+
+\begin{code}
+cd C:\webgis-lab
+git add -A
+git commit -m "District Explorer: map, classification, filter"
+git push -u origin main
+\end{code}
+
+\paragraph{A browser window will open}
+Git for Windows authenticates through your browser rather than asking
+for a password in the terminal. Approve it once and it remembers. If
+anything asks you to type your GitHub password into PowerShell, stop and
+ask for help.
+
+
+\subsection{Turn on hosting}
+
+\begin{enumerate}
+  \item On the repository page, open \textbf{Settings}, then
+        \textbf{Pages}.
+  \item Under Source, choose \textbf{Deploy from a branch}.
+  \item Set the branch to \cd{main} and the folder to \cd{/ (root)}.
+        Save.
+  \item Wait one to three minutes, then refresh until the live URL
+        appears.
+\end{enumerate}
+
+Open the URL on your phone, using mobile data rather than campus wifi.
+The map is now being served over the public internet.
+
+\subsection{Write the report}
+
+Create \cd{report.md} in the repository, containing:
+
+\begin{enumerate}
+  \item Your nine checkpoint screenshots.
+  \item The file size table from Part 3.
+  \item The load times you measured with and without throttling.
+  \item The classification breaks you used, and one sentence on why.
+  \item The coordinate system comparison table from Part 9, if you
+        completed it.
+  \item Your answers to the questions below.
+\end{enumerate}
+
+\subsection{Questions}
+
+\begin{enumerate}
+  \item Version D is far smaller than version A. Give one situation in
+        which version D would be the wrong choice.
+  \item The page makes one request for your GeoJSON file and dozens for
+        tiles. Explain the difference in how those two kinds of data
+        reach the browser.
+  \item Why does the map container need a height when the heading does
+        not?
+  \item \cd{draw} removes the existing layer before adding a new one.
+        What would go wrong if it did not?
+  \item A classmate's districts all appear in the same colour. List two
+        possible causes and how you would tell them apart.
+  \item You open the page by double-clicking \cd{index.html} instead of
+        using Live Server. The basemap appears but the districts do not.
+        Explain why.
+\end{enumerate}
+
+\subsection{Marking}
+
+\begin{tabularx}{\textwidth}{@{}X r@{}}
+\toprule
+\textbf{Item} & \textbf{Marks} \\
+\midrule
+Published map that loads, with shading, legend and popups & 30 \\
+File size measurement table, with correct method          & 15 \\
+Network measurements, including the throttled figures     & 10 \\
+Nine checkpoint screenshots                               & 15 \\
+Answers to the six questions                              & 20 \\
+Repository with a readable commit history                 & 10 \\
+\midrule
+Extensions in Parts 8 and 9                               & +10 bonus \\
+\bottomrule
+\end{tabularx}
+
+\vspace{1em}
+Submit two links on LMS: your repository and your live page.
+
+%==============================================================
+\section*{Appendix A: Troubleshooting}
+\addcontentsline{toc}{section}{Appendix A: Troubleshooting}
+
+\begin{tabularx}{\textwidth}{@{}L{4.6cm} X@{}}
+\toprule
+\textbf{Symptom} & \textbf{Cause and fix} \\
+\midrule
+Nothing where the map should be &
+  The container has no height. Check the \cd{\#map} rule in
+  \cd{style.css} \\
+Grey map area, no tiles &
+  No internet, or the tile host is blocked. Check that you can open
+  \cd{unpkg.com} in a tab \\
+\cd{L is not defined} &
+  The Leaflet script tag is missing, misspelled, or placed after
+  \cd{app.js}. Leaflet must load first \\
+\cd{Map container not found} &
+  The id in the HTML and the id in \cd{L.map()} do not match. Both must
+  be exactly \cd{map} \\
+Basemap loads, districts do not &
+  Opened from the file system. Use Live Server. Check the address bar
+  reads \cd{127.0.0.1} \\
+404 on \cd{districts.geojson} &
+  Wrong path. The file must be at \cd{data/districts.geojson} relative
+  to \cd{index.html} \\
+\cd{Cannot read properties of null} &
+  \cd{draw} ran before the data arrived. Check that \cd{await} is
+  present on both lines in \cd{loadData} \\
+Every district the same colour &
+  The values cannot be read as numbers: a thousands separator, a stray
+  space, or a placeholder such as \cd{NA}. Check the attribute table \\
+Map draws nothing and the console says \cd{Cannot read properties of
+  null} &
+  A popup is reading an attribute that is \cd{null} or named differently.
+  Use the \cd{show} helper from Part 7 \\
+\cd{Bounds are not valid} &
+  \cd{fitBounds} was called on an empty selection. Check the
+  \cd{features.length > 0} guard in \cd{draw} \\
+Districts drawn in the ocean &
+  Longitude and latitude are swapped in the source file \\
+Hairline gaps between districts &
+  Simplified without preserving topology. Re-run Simplify with that
+  option enabled \\
+Popup shows \cd{undefined} &
+  The property name in the popup does not match the attribute table \\
+Page works locally, not when published &
+  A path with a capital letter or a backslash. GitHub Pages is
+  case-sensitive and needs forward slashes \\
+\bottomrule
+\end{tabularx}
+
+%==============================================================
+\section*{Appendix B: Reference}
+\addcontentsline{toc}{section}{Appendix B: Reference}
+
+\subsection*{Commands}
+
+\begin{code}
+cd C:\webgis-lab          go to the project folder
+code .                    open the folder in VS Code
+git status                what has changed
+git add -A                stage all changes
+git commit -m "..."       save a snapshot
+git push                  upload to GitHub
+git log --oneline         see the commit history
+\end{code}
+
+\subsection*{Developer tools}
+
+\begin{tabularx}{\textwidth}{@{}L{3.6cm} X@{}}
+\toprule
+\textbf{Tab} & \textbf{Use it for} \\
+\midrule
+Elements & Seeing the page as the browser built it, and editing CSS live \\
+Console  & Reading errors, and printing values with \cd{console.log} \\
+Network  & Request sizes, status codes, timings, and throttling \\
+\bottomrule
+\end{tabularx}
+
+\subsection*{Numbers worth remembering}
+
+\begin{tabularx}{\textwidth}{@{}L{6cm} X@{}}
+\toprule
+\textbf{Quantity} & \textbf{Value} \\
+\midrule
+Latitude range, Pakistan        & about 24 to 37 \\
+Longitude range, Pakistan       & about 61 to 77 \\
+Fifth decimal place             & about 1.1 m \\
+Tile size                       & 256 by 256 pixels \\
+EPSG:4326                       & WGS 84 degrees, for storage \\
+EPSG:3857                       & Web Mercator metres, for display \\
+EPSG:32642 and 32643            & UTM zones 42N and 43N, for measuring \\
+Area inflation at 33.6\textdegree & about 1.4 times \\
+\bottomrule
+\end{tabularx}
+
+\subsection*{Optional, if you finish everything}
+
+\begin{enumerate}
+  \item Add a second basemap and a layer control to switch between them.
+  \item Highlight a district on mouseover by changing its outline weight.
+  \item Add a text box that filters districts by name as the user types.
+  \item Sort the drop-down by district count rather than alphabetically.
+  \item Replace the manual classification breaks with quantiles computed
+        from the data.
+\end{enumerate}
+
+\end{document}

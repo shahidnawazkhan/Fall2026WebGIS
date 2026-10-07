@@ -8,7 +8,9 @@ This README will be updated throughout the semester as new lab content, assignme
 
 ### Labs
 
-_Lab content will be added here as the course progresses._
+- [Lab 2: District Explorer](Lab2/): building a web map from a shapefile with QGIS, GeoJSON and Leaflet
+
+_More lab content will be added here as the course progresses._
 
 ### Other Resources
 
