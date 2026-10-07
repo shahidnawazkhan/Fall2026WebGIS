@@ -1,7 +1,15 @@
 // District Explorer: the finished app.js from Lab 2 (Parts 5 to 8).
 
 // Part 5: create the map
-const map = L.map('map').setView([30.3753, 69.3451], 5);
+// Pakistan spans about 23.6 to 37.1 N and 60.9 to 77.9 E. The limits add a
+// margin of about two degrees so border districts are not pinned to the edge.
+const pakistanLimits = L.latLngBounds([21.5, 58.5], [39.0, 80.5]);
+
+const map = L.map('map', {
+  maxBounds: pakistanLimits,
+  maxBoundsViscosity: 1.0,   // 1.0 = a hard stop at the edge, no rubber-band
+  minZoom: 5                 // cannot zoom out to the rest of the world
+}).setView([30.3753, 69.3451], 5);
 
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
   maxZoom: 19,
