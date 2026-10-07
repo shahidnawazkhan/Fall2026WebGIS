@@ -8,6 +8,10 @@ This README will be updated throughout the semester as new lab content, assignme
 
 ## Course Contents
 
+### Lectures
+
+_Lecture slides will be added to [Lectures](Lectures/) after each class._
+
 ### Labs
 
 - [Lab 2: District Explorer](Lab2/): building a web map from a shapefile with QGIS, GeoJSON and Leaflet ([handout PDF](Lab2/Lab2_District_Explorer.pdf))
@@ -26,6 +30,7 @@ The site is served by GitHub Pages from the `main` branch root.
 |------|---------|
 | `index.html` | Course home page |
 | `assets/site.css` | Shared theme (light and dark) |
+| `Lectures/LectureNN/` | Lecture slides, listed in the Lectures section of the home page |
 | `LabN/index.html` | Each lab's page |
 | `LabN/*.pdf` | Compiled handout, built from the `.tex` source with pdfLaTeX |
 

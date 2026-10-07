@@ -449,3 +449,51 @@ footer p { margin: 0; max-width: 560px; }
   .labs { grid-template-columns: 1fr; }
   .lab-card.upcoming { min-height: 120px; }
 }
+
+/* ---- lectures ---- */
+
+.lecture-list {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+
+/* one row per lecture: number, title and date, download buttons */
+.lecture {
+  display: grid;
+  grid-template-columns: 64px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 18px 22px;
+  border-bottom: 1px solid var(--line);
+}
+
+.lecture:last-child { border-bottom: 0; }
+
+.lecture-num {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--warm);
+  letter-spacing: .06em;
+}
+
+.lecture h3 { font-size: 18px; margin: 0 0 2px; }
+.lecture p { margin: 0; color: var(--ink-faint); font-size: 14px; }
+.lecture .lab-links { margin: 0; }
+
+.lecture-empty {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 22px 24px;
+  color: var(--ink-faint);
+}
+
+.lecture-empty .icon-dot { margin: 0; flex: none; }
+.lecture-empty p { margin: 0; }
+
+@media (max-width: 560px) {
+  .lecture { grid-template-columns: 1fr; gap: 8px; }
+}
