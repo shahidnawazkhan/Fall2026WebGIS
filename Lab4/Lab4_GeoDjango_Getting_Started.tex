@@ -36,6 +36,7 @@
 \usepackage{tabularx}
 \usepackage{array}
 \usepackage{enumitem}
+\usepackage{needspace}
 
 \setlist[enumerate]{itemsep=.25em,topsep=.5em}
 \setlist[itemize]{itemsep=.25em,topsep=.5em}
@@ -198,18 +199,130 @@ went wrong on your machine and how you fixed it.
 %==============================================================
 \section{Python and a first Django project}
 
-\subsection{Install Python}
+\subsection{Check for Python, and install it if needed}
 
-Django 6.1 needs Python 3.12 or later. Check whether you already have it:
+Django 6.1 needs \textbf{Python 3.12 or later}. Many machines already
+have a Python, sometimes an old one installed by another program, so
+check before installing anything.
+
+\paragraph{Where to check}
+Open PowerShell: press the Windows key, type \cd{powershell}, and press
+Enter. Inside VS Code you can use its terminal instead, from
+\textbf{Terminal}, \textbf{New Terminal}, or \cd{Ctrl+\textasciigrave}. Both are the
+same PowerShell. Then type:
 
 \begin{code}
 python --version
+py --list
 \end{code}
 
-If the command is not found, or prints a version below 3.12, install
-Python 3.13 from \cd{python.org}. On the first screen of the installer,
-tick \textbf{Add python.exe to PATH} before clicking Install. Close
-PowerShell, open a new one, and check the version again.
+\cd{python -{}-version} reports the Python that runs when you type
+\cd{python}. \cd{py -{}-list} asks the Windows Python launcher to list
+every version installed on the machine; it exists only if Python was
+installed from \cd{python.org}.
+
+\needspace{14\baselineskip}
+\paragraph{What the answer means}
+Find the line that matches what PowerShell printed.
+
+\vspace{.4em}
+\begin{tabularx}{\textwidth}{@{}L{5.6cm} X@{}}
+\toprule
+\textbf{You see} & \textbf{What to do} \\
+\midrule
+\cd{Python 3.12.x}, \cd{3.13.x} or higher &
+  You have what you need. Skip to section 1.2 \\
+\cd{Python 3.11.x} or lower &
+  Too old for Django 6.1. Install 3.13 as below. The old one can stay;
+  the two do not conflict \\
+\cd{Python was not found; run without arguments to install from the
+  Microsoft Store} &
+  Python is not installed. That message comes from a Windows shortcut,
+  not from Python. Install 3.13 as below \\
+\cd{python : The term 'python' is not recognized} &
+  Python is not installed, or was installed without being added to
+  \cd{PATH}. Install 3.13 as below \\
+Nothing at all, or the Microsoft Store opens &
+  The same Windows shortcut. Install 3.13 as below \\
+\bottomrule
+\end{tabularx}
+
+\paragraph{Download the installer}
+
+\begin{enumerate}
+  \item Go to \cdb{https://www.python.org/downloads/windows/}.
+  \item Under \textbf{Stable Releases}, find the newest
+        \textbf{Python 3.13} release.
+  \item Under it, click \textbf{Windows installer (64-bit)}. The file is
+        called something like \cd{python-3.13.9-amd64.exe}; the last
+        number changes with each release, and any 3.13 is fine.
+\end{enumerate}
+
+Do not take Python from the Microsoft Store. It installs into a
+protected folder and behaves differently with virtual environments.
+
+\paragraph{Run the installer}
+
+\begin{enumerate}
+  \item On the first screen, before anything else, tick
+        \textbf{Add python.exe to PATH} at the bottom. This is the one
+        step people miss, and the cause of most ``not recognized''
+        errors later.
+  \item Leave \textbf{Use admin privileges when installing py.exe}
+        ticked.
+  \item Click \textbf{Install Now}. It installs for your user account,
+        into \cdb{C:\\Users\\<you>\\AppData\\Local\\Programs\\Python\\Python313}.
+  \item If the last screen offers \textbf{Disable path length limit},
+        click it. Windows otherwise limits paths to 260 characters,
+        which some Python packages exceed.
+  \item Click Close.
+\end{enumerate}
+
+\begin{keypoint}{Without the installer}
+If you prefer the command line, this installs the same thing:
+
+\begin{code}
+winget install Python.Python.3.13
+\end{code}
+\end{keypoint}
+
+\paragraph{Check that it worked}
+Close every PowerShell window and every VS Code window, then open a new
+one. A window that was already open still has the old \cd{PATH} and will
+not find the new Python. Then:
+
+\begin{code}
+python --version
+pip --version
+where.exe python
+\end{code}
+
+\cd{python -{}-version} should now print \cd{Python 3.13} followed by a
+release number, and \cd{pip -{}-version} should mention \cd{python 3.13}.
+\cd{where.exe python} lists every \cd{python.exe} on \cd{PATH} in the
+order Windows searches them. The first line must be the one in
+\cd{...\textbackslash Programs\textbackslash Python\textbackslash Python313}.
+
+\begin{keypoint}{If the first line is \texttt{WindowsApps\textbackslash python.exe}}
+That is the Microsoft Store shortcut, and it is being found before your
+real Python. Turn it off: open Windows \textbf{Settings},
+\textbf{Apps}, \textbf{Advanced app settings}, \textbf{App execution
+aliases}, and switch off the two entries for \cd{python.exe} and
+\cd{python3.exe}. Open a new PowerShell and check again.
+\end{keypoint}
+
+\begin{keypoint}{If you have more than one Python}
+When \cd{py -{}-list} shows several versions and \cd{python -{}-version}
+still reports an old one, name the version explicitly when you create
+the virtual environment in the next section:
+
+\begin{code}
+py -3.13 -m venv venv
+\end{code}
+
+Once that environment is activated, \cd{python} inside it is 3.13,
+whatever the rest of the machine uses.
+\end{keypoint}
 
 \subsection{Create the project folder and a virtual environment}
 
@@ -294,7 +407,7 @@ replaces it. Stop the server with \cd{Ctrl+C} and delete
 
 \begin{keypoint}{Checkpoint 1}
 A screenshot of the ``install worked'' page with the address bar
-visible, and the output of \cd{python -m django --version}.
+visible, and the output of \cd{python -m django -{}-version}.
 \end{keypoint}
 
 
@@ -1161,7 +1274,10 @@ Submit your repository link on LMS.
 \midrule
 \cd{python} is not recognised &
   Python was installed without \textbf{Add python.exe to PATH}. Run the
-  installer again, choose Modify, and tick it \\
+  installer again, choose Modify, and tick it. See section 1.1 \\
+\cd{Python was not found}, or the Store opens &
+  The Windows Store shortcut. Turn off the App execution aliases for
+  Python, as in section 1.1 \\
 Running scripts is disabled on this system &
   \cd{Set-ExecutionPolicy -Scope CurrentUser RemoteSigned}, then
   activate again \\
