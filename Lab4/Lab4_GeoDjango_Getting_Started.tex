@@ -1,0 +1,1252 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Web GIS Laboratory 4: Getting started with GeoDjango
+%% Institute of Geographical Information Systems, NUST
+%%
+%% Layout follows "A Psychology Lab Manual" by John Paul Minda
+%% (Overleaf, CC BY 4.0): article class, fullpage margins,
+%% Helvetica throughout, parskip, blue links, no colour boxes.
+%%
+%% COMPILER: pdfLaTeX
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+\documentclass{article}
+\usepackage{fullpage}
+
+\renewcommand{\familydefault}{\sfdefault}
+\usepackage[scaled=1]{helvet}
+\usepackage[helvet]{sfmath}
+\everymath={\sf}
+
+\usepackage{parskip}
+\usepackage[colorlinks=true, allcolors=blue]{hyperref}
+
+%% Required by this document but not by the original template.
+%% Encoding first: without T1, < and > inside code print as
+%% inverted punctuation and straight quotes turn curly.
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+\fi
+\usepackage{textcomp}
+\usepackage{upquote}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{enumitem}
+
+\setlist[enumerate]{itemsep=.25em,topsep=.5em}
+\setlist[itemize]{itemsep=.25em,topsep=.5em}
+\renewcommand{\arraystretch}{1.25}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+
+%% Inline code. \cd for short tokens, \cdb for long paths and URLs,
+%% which must be allowed to break across lines.
+\urlstyle{tt}
+\newcommand{\cd}[1]{\texttt{#1}}
+\newcommand{\cdb}[1]{\nolinkurl{#1}}
+
+%% Code blocks: a plain rule, no shading, in keeping with the template
+\lstdefinestyle{plain}{
+  basicstyle=\ttfamily\small,
+  frame=single,
+  rulecolor=\color{black!35},
+  framesep=7pt,
+  xleftmargin=7pt,
+  xrightmargin=7pt,
+  breaklines=true,
+  columns=fullflexible,
+  keepspaces=true,
+  showstringspaces=false,
+  upquote=true,
+  aboveskip=1em,
+  belowskip=1em,
+}
+\lstset{style=plain}
+\lstnewenvironment{code}{\lstset{style=plain}}{}
+
+%% Caption for a code block. Deliberately not \paragraph, which is a
+%% run-in heading and would be overlapped by the listing frame.
+\newcommand{\codecap}[1]{%
+  \par\vspace{.9em}\noindent\textbf{#1}\par\vspace{-.6em}}
+
+%% A block that must not be skimmed past: ruled above and below,
+%% with a bold label. Used for warnings and checkpoints.
+\newenvironment{keypoint}[1]
+  {\par\vspace{.7em}\noindent\rule{\linewidth}{.6pt}\par\vspace{.15em}
+   \noindent\textbf{#1}\par\nobreak\vspace{-.3em}}
+  {\par\vspace{.15em}\noindent\rule{\linewidth}{.6pt}\par\vspace{.7em}}
+
+\title{Web GIS Laboratory 4\\[.3em]\large Getting started with GeoDjango:
+       Django, PostGIS, the admin panel and Leaflet}
+\author{Dr.\ Shahid Nawaz Khan\\
+        Institute of Geographical Information Systems\\
+        School of Civil and Environmental Engineering\\
+        National University of Sciences and Technology, Islamabad}
+\date{MS Remote Sensing and GIS}
+
+\setcounter{tocdepth}{1}
+
+\begin{document}
+\maketitle
+
+\begin{tabularx}{\textwidth}{@{}L{3.4cm} X@{}}
+\toprule
+Duration    & 3 hours \\
+Builds on   & Labs 2 and 3: the same districts, now in a database \\
+Software    & Python, Django, PostgreSQL with PostGIS, OSGeo4W, VS Code \\
+Deliverable & A working GeoDjango project in your repository, and a report \\
+\bottomrule
+\end{tabularx}
+
+\tableofcontents
+
+
+%==============================================================
+\section*{Before you begin}
+\addcontentsline{toc}{section}{Before you begin}
+
+\subsection*{What changes in this lab}
+
+Until now the browser did everything. It fetched a GeoJSON file that sat
+next to the page and drew it. That works for a fixed dataset, but nothing
+can be edited, nothing is checked, and every user downloads everything.
+
+From this lab on, the data lives in a \textbf{spatial database}, and a
+\textbf{web framework} stands between the database and the browser:
+
+\vspace{.4em}
+\begin{center}
+\begin{tabular}{c c c c c}
+\textbf{PostGIS} & $\longleftrightarrow$ & \textbf{Django} &
+$\longrightarrow$ & \textbf{Leaflet in the browser} \\[.2em]
+\small stores and queries & & \small decides what to send & &
+\small draws what it receives \\
+\end{tabular}
+\end{center}
+\vspace{.4em}
+
+GeoDjango is the part of Django that understands geometry. By the end
+of the lab the 160 districts from Labs 2 and 3 will be stored in PostGIS,
+editable through Django's admin panel, and drawn by Leaflet from data
+Django serves.
+
+\subsection*{Learning outcomes}
+
+\begin{enumerate}
+  \item Create a Python virtual environment and install Django into it.
+  \item Install PostgreSQL with the PostGIS extension, and create a
+        spatial database.
+  \item Install the GDAL, GEOS and PROJ libraries GeoDjango depends on,
+        and connect Django to PostGIS.
+  \item Define a model with a geometry field, and read the SQL Django
+        generates for it.
+  \item Load a GeoJSON file into the database.
+  \item Use the Django admin panel to browse, filter, search and edit
+        spatial data.
+  \item Serve data from the database as GeoJSON and draw it with Leaflet.
+\end{enumerate}
+
+\subsection*{Structure and timing}
+
+This lab is mostly installation. Installation fails in different ways on
+different machines, so the times are a guide. Parts 1 to 7 are the core;
+Part 8 is an extension.
+
+\vspace{.6em}
+\begin{tabularx}{\textwidth}{@{}c X r@{}}
+\toprule
+\textbf{Part} & \textbf{What you do} & \textbf{Time} \\
+\midrule
+1 & Python and a first Django project            & 20 min \\
+2 & Install PostgreSQL and PostGIS               & 25 min \\
+3 & Connect Django to PostGIS                    & 25 min \\
+4 & A model with a geometry                      & 15 min \\
+5 & Load the districts                           & 15 min \\
+6 & The admin panel                              & 20 min \\
+7 & Leaflet, fed by Django                       & 25 min \\
+\midrule
+8 & Ask PostGIS a spatial question \textit{(extension)} & 15 min \\
+\midrule
+9 & Commit and submit                            & 10 min \\
+\bottomrule
+\end{tabularx}
+
+\subsection*{What you need}
+
+\begin{tabularx}{\textwidth}{@{}L{4.2cm} X@{}}
+\toprule
+\textbf{Item} & \textbf{Requirement} \\
+\midrule
+Operating system & Windows 10 or 11 \\
+Disk space       & About 2 GB for PostgreSQL, PostGIS and OSGeo4W \\
+Rights           & Administrator rights, for the two installers \\
+Data             & \cd{districts.geojson} from Lab 3, with \cd{pop\_2023} \\
+Internet         & The installers download several hundred megabytes \\
+\bottomrule
+\end{tabularx}
+
+\begin{keypoint}{Keep a record as you go}
+Write down every version number you see, and copy any error message in
+full before you try to fix it. Part of your report is a record of what
+went wrong on your machine and how you fixed it.
+\end{keypoint}
+
+
+%==============================================================
+\section{Python and a first Django project}
+
+\subsection{Install Python}
+
+Django 6.1 needs Python 3.12 or later. Check whether you already have it:
+
+\begin{code}
+python --version
+\end{code}
+
+If the command is not found, or prints a version below 3.12, install
+Python 3.13 from \cd{python.org}. On the first screen of the installer,
+tick \textbf{Add python.exe to PATH} before clicking Install. Close
+PowerShell, open a new one, and check the version again.
+
+\subsection{Create the project folder and a virtual environment}
+
+Work inside your course repository, in a new folder:
+
+\begin{code}
+cd C:\webgis-lab
+mkdir lab4
+cd lab4
+python -m venv venv
+venv\Scripts\Activate.ps1
+\end{code}
+
+The prompt now starts with \cd{(venv)}. Everything you install with
+\cd{pip} from here goes into the \cd{venv} folder, not into Python
+itself.
+
+\begin{keypoint}{If PowerShell refuses to run Activate.ps1}
+A message saying that running scripts is disabled on this system means
+PowerShell's execution policy blocks it. Allow scripts for your own
+account, once, then activate again:
+
+\begin{code}
+Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
+\end{code}
+\end{keypoint}
+
+\paragraph{Why a virtual environment}
+Each project gets its own copy of its libraries, at its own versions. A
+project from another course that needs a different Django cannot break
+this one, and \cd{requirements.txt} records exactly what this project
+needs.
+
+\subsection{Install Django and the PostgreSQL driver}
+
+\begin{code}
+pip install django "psycopg[binary]"
+pip freeze > requirements.txt
+python -m django --version
+\end{code}
+
+\cd{psycopg} is how Python talks to PostgreSQL. The \cd{[binary]} part
+installs a ready-built version, so no compiler is needed.
+
+\subsection{Start a project and an app}
+
+\begin{code}
+django-admin startproject webgis .
+python manage.py startapp districts
+\end{code}
+
+Note the dot at the end of the first line: it puts the project in the
+current folder instead of a new one.
+
+\begin{tabularx}{\textwidth}{@{}L{4.4cm} X@{}}
+\toprule
+\textbf{File or folder} & \textbf{Holds} \\
+\midrule
+\cd{manage.py}            & The command you run everything through \\
+\cd{webgis/settings.py}   & The project's configuration \\
+\cd{webgis/urls.py}       & Which URL goes to which code \\
+\cd{districts/}           & An \textbf{app}: one part of the project, here
+                            everything about districts \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Run it}
+
+\begin{code}
+python manage.py migrate
+python manage.py runserver
+\end{code}
+
+Open \cdb{http://127.0.0.1:8000/}. You should see a page saying the
+install worked. Then open \cdb{http://127.0.0.1:8000/admin/}: a login page.
+There is no user yet; that comes in Part 6.
+
+\cd{migrate} created a database. By default it is SQLite, a single file
+called \cd{db.sqlite3}. SQLite cannot store geometry properly, so Part 3
+replaces it. Stop the server with \cd{Ctrl+C} and delete
+\cd{db.sqlite3}.
+
+\begin{keypoint}{Checkpoint 1}
+A screenshot of the ``install worked'' page with the address bar
+visible, and the output of \cd{python -m django --version}.
+\end{keypoint}
+
+
+%==============================================================
+\section{Install PostgreSQL and PostGIS}
+
+\subsection{PostgreSQL}
+
+From \cd{postgresql.org}, under Download, Windows, take the installer
+for the latest version (17 or later). Run it, and accept the defaults
+except for these:
+
+\begin{tabularx}{\textwidth}{@{}L{4.4cm} X@{}}
+\toprule
+\textbf{Screen} & \textbf{What to do} \\
+\midrule
+Select Components & Keep all four: the server, pgAdmin 4, Stack Builder
+                   and the command line tools \\
+Password          & The password for the \cd{postgres} superuser. Choose
+                    one and \textbf{write it down}; it cannot be
+                    recovered \\
+Port              & Leave it at \cd{5432} \\
+Last screen       & Leave \textbf{Launch Stack Builder} ticked, and
+                    click Finish \\
+\bottomrule
+\end{tabularx}
+
+\subsection{PostGIS, through Stack Builder}
+
+PostgreSQL on its own knows nothing about geometry. PostGIS is an
+extension that adds geometry types, spatial indexes and several hundred
+spatial functions.
+
+\begin{enumerate}
+  \item In Stack Builder, choose your PostgreSQL installation from the
+        list, then Next.
+  \item Open \textbf{Spatial Extensions} and tick the \textbf{PostGIS}
+        bundle for your PostgreSQL version.
+  \item Download, install, and accept the defaults throughout, including
+        any questions about environment variables.
+\end{enumerate}
+
+\subsection{Create a spatial database}
+
+Open \textbf{pgAdmin 4}, and connect to the server with your password.
+
+\begin{enumerate}
+  \item Right-click \textbf{Databases}, \textbf{Create},
+        \textbf{Database}. Name it \cd{webgis}, and Save.
+  \item Select \cd{webgis}, then \textbf{Tools}, \textbf{Query Tool}.
+  \item Run these two statements:
+\end{enumerate}
+
+\begin{code}
+CREATE EXTENSION postgis;
+SELECT postgis_full_version();
+\end{code}
+
+The second returns one long line listing PostGIS, GEOS and PROJ with their
+versions. That line is your proof that the database can hold geometry.
+
+\begin{keypoint}{Checkpoint 2}
+A screenshot of pgAdmin with the \cd{webgis} database selected and the
+result of \cd{postgis\_full\_version()} visible.
+\end{keypoint}
+
+
+%==============================================================
+\section{Connect Django to PostGIS}
+
+Three things are needed: the libraries GeoDjango uses to handle geometry
+in Python, the password, and the settings.
+
+\subsection{GDAL, GEOS and PROJ, through OSGeo4W}
+
+GeoDjango does not do the geometry work itself. It calls three C
+libraries: \textbf{GDAL} to read and write formats, \textbf{GEOS} for
+geometry operations, \textbf{PROJ} for coordinate systems. QGIS uses the
+same three. On Windows, the usual way to get them is OSGeo4W.
+
+\begin{enumerate}
+  \item Download \cd{osgeo4w-setup.exe} from \cd{trac.osgeo.org/osgeo4w}.
+  \item Run it and choose \textbf{Express Install}, then the default
+        download site.
+  \item From the list of packages, tick \textbf{GDAL} only, and continue.
+        It installs to \cd{C:\textbackslash OSGeo4W}.
+\end{enumerate}
+
+\begin{keypoint}{If the OSGeo4W installer will not run}
+QGIS for Windows is built on OSGeo4W and carries the same libraries. If
+you installed QGIS for Lab 2, you can point Django at its folder instead,
+for example \cd{C:\textbackslash Program Files\textbackslash QGIS 3.40.10}.
+Use the exact folder name on your machine in the settings below. Use this
+only if OSGeo4W fails.
+\end{keypoint}
+
+\subsection{Store the password outside the code}
+
+Your settings file will be committed to GitHub, so the database password
+must not be written in it. Store it in an environment variable instead:
+
+\begin{code}
+setx WEBGIS_DB_PASSWORD "the-password-you-chose"
+\end{code}
+
+\cd{setx} saves the variable for every \textbf{new} window. Close VS Code
+completely and open it again, then activate the environment again with
+\cd{venv\textbackslash Scripts\textbackslash Activate.ps1}.
+
+\subsection{Edit the settings}
+
+Open \cd{webgis/settings.py} and make three changes.
+
+\paragraph{One: tell Python where OSGeo4W is}
+Replace the line \cd{from pathlib import Path} near the top, and add the
+block below \cd{BASE\_DIR}:
+
+\codecap{webgis/settings.py, top of the file}
+\begin{code}
+import os
+from pathlib import Path
+
+# Build paths inside the project like this: BASE_DIR / 'subdir'.
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+# GeoDjango needs the GDAL, GEOS and PROJ libraries. On Windows they come
+# from OSGeo4W; putting its bin folder on PATH lets Django find them.
+if os.name == "nt":
+    OSGEO4W = r"C:\OSGeo4W"
+    os.environ["OSGEO4W_ROOT"] = OSGEO4W
+    os.environ["GDAL_DATA"] = OSGEO4W + r"\share\gdal"
+    os.environ["PROJ_DATA"] = OSGEO4W + r"\share\proj"
+    os.environ["PROJ_LIB"] = OSGEO4W + r"\share\proj"
+    os.environ["PATH"] = OSGEO4W + r"\bin;" + os.environ["PATH"]
+\end{code}
+
+\cd{os.name == "nt"} is true only on Windows, so the same settings file
+still works on a Linux server later.
+
+\paragraph{Two: add GeoDjango and your app}
+
+\codecap{webgis/settings.py, INSTALLED\_APPS}
+\begin{code}
+INSTALLED_APPS = [
+    "django.contrib.admin",
+    "django.contrib.auth",
+    "django.contrib.contenttypes",
+    "django.contrib.sessions",
+    "django.contrib.messages",
+    "django.contrib.staticfiles",
+    "django.contrib.gis",
+    "districts",
+]
+\end{code}
+
+\paragraph{Three: replace SQLite with PostGIS}
+
+\codecap{webgis/settings.py, DATABASES}
+\begin{code}
+# The password is read from an environment variable so that it is never
+# written into a file that gets committed to GitHub.
+DATABASES = {
+    "default": {
+        "ENGINE": "django.contrib.gis.db.backends.postgis",
+        "NAME": "webgis",
+        "USER": "postgres",
+        "PASSWORD": os.environ.get("WEBGIS_DB_PASSWORD", ""),
+        "HOST": "localhost",
+        "PORT": "5432",
+    }
+}
+\end{code}
+
+\subsection{Check each piece separately}
+
+Run these one at a time. Each tests one link in the chain, so the first
+one to fail tells you where the problem is.
+
+\begin{code}
+python manage.py shell -c "from django.contrib.gis import gdal, geos; print(gdal.gdal_version(), geos.geos_version())"
+python manage.py check
+python manage.py migrate
+\end{code}
+
+\begin{tabularx}{\textwidth}{@{}L{3.2cm} X@{}}
+\toprule
+\textbf{Command} & \textbf{Proves} \\
+\midrule
+The \cd{shell} line & Python can load GDAL and GEOS. It prints their
+                      version numbers \\
+\cd{check}          & The settings are valid \\
+\cd{migrate}        & Django can log in to PostGIS and create its tables
+                      there \\
+\bottomrule
+\end{tabularx}
+
+\vspace{.8em}
+In pgAdmin, refresh \cd{webgis}, then open \textbf{Schemas},
+\textbf{public}, \textbf{Tables}. Django's own tables are now there,
+next to \cd{spatial\_ref\_sys}, which belongs to PostGIS.
+
+\begin{keypoint}{Checkpoint 3}
+The output of the three commands, and a screenshot of the tables in
+pgAdmin.
+\end{keypoint}
+
+
+%==============================================================
+\section{A model with a geometry}
+
+\subsection{The model}
+
+A \textbf{model} is a Python class that Django turns into a database
+table. Each attribute becomes a column.
+
+\codecap{districts/models.py, complete}
+\begin{code}
+from django.contrib.gis.db import models
+
+
+class District(models.Model):
+    name = models.CharField(max_length=100)
+    province = models.CharField(max_length=50)
+    pcode = models.CharField(max_length=10, unique=True)
+    pop_2023 = models.IntegerField(null=True, blank=True)
+    area_km2 = models.FloatField()
+    geom = models.MultiPolygonField(srid=4326)
+
+    class Meta:
+        ordering = ["province", "name"]
+
+    def __str__(self):
+        return f"{self.name} ({self.province})"
+\end{code}
+
+\begin{tabularx}{\textwidth}{@{}L{4.4cm} X@{}}
+\toprule
+\textbf{Line} & \textbf{Why} \\
+\midrule
+\cd{from django.contrib.gis.db} & The GeoDjango version of \cd{models},
+                                  which adds the geometry fields \\
+\cd{null=True, blank=True}      & 25 districts have no census figure.
+                                  Empty must be allowed \\
+\cd{MultiPolygonField}          & Some districts are in more than one
+                                  piece \\
+\cd{srid=4326}                  & WGS 84 longitude and latitude, the same
+                                  as the GeoJSON \\
+\cd{\_\_str\_\_}                & How a district is named in the admin and
+                                  in the shell \\
+\bottomrule
+\end{tabularx}
+
+\subsection{From model to table}
+
+\begin{code}
+python manage.py makemigrations districts
+python manage.py sqlmigrate districts 0001
+python manage.py migrate
+\end{code}
+
+\cd{makemigrations} writes a migration file describing the change.
+\cd{sqlmigrate} shows the SQL that file will run, without running it.
+Read it. Two lines matter:
+
+\begin{code}
+"geom" geometry(MULTIPOLYGON,4326) NOT NULL
+CREATE INDEX "districts_district_geom_..." ON "districts_district" USING GIST ("geom");
+\end{code}
+
+The first is a real PostGIS geometry column, constrained to
+multipolygons in EPSG:4326. The second is a \textbf{spatial index}. You
+did not ask for it; GeoDjango adds one to every geometry field, because
+without it every spatial query would have to examine every row.
+
+\begin{keypoint}{Checkpoint 4}
+The output of \cd{sqlmigrate}, and a screenshot of the
+\cd{districts\_district} table's columns in pgAdmin.
+\end{keypoint}
+
+
+%==============================================================
+\section{Load the districts}
+
+\subsection{The data file}
+
+\begin{code}
+mkdir data
+copy ..\lab3\data\districts.geojson data\districts.geojson
+\end{code}
+
+\subsection{A loading script}
+
+\codecap{districts/load.py, complete}
+\begin{code}
+from pathlib import Path
+
+from django.contrib.gis.gdal import DataSource
+from django.contrib.gis.geos import MultiPolygon
+
+from .models import District
+
+data_file = Path(__file__).resolve().parent.parent / "data" / "districts.geojson"
+
+
+def run():
+    layer = DataSource(data_file)[0]
+    print(layer.name, ":", len(layer), "features,", layer.geom_type, "geometry")
+
+    # Start from an empty table, so the script can be run more than once
+    District.objects.all().delete()
+
+    for feature in layer:
+        geom = feature.geom.geos
+        geom.srid = 4326
+
+        # The file mixes Polygon and MultiPolygon. The model stores only
+        # MultiPolygon, so wrap each single polygon in a multipolygon.
+        if geom.geom_type == "Polygon":
+            geom = MultiPolygon(geom, srid=4326)
+
+        District.objects.create(
+            name=feature.get("district"),
+            province=feature.get("province"),
+            pcode=feature.get("pcode"),
+            pop_2023=feature.get("pop_2023"),
+            area_km2=feature.get("area_km2"),
+            geom=geom,
+        )
+
+    print(District.objects.count(), "districts saved")
+\end{code}
+
+Run it:
+
+\begin{code}
+python manage.py shell -c "from districts import load; load.run()"
+\end{code}
+
+It should report 160 features and 160 districts saved. Note the geometry
+type it prints for the layer.
+
+\paragraph{Why the Polygon check}
+The file holds 152 \cd{Polygon} features and 8 \cd{MultiPolygon}
+features, so GDAL reports the layer's geometry type as \cd{Unknown}. The
+column accepts only multipolygons, and PostGIS would reject a plain
+polygon. Wrapping it in a \cd{MultiPolygon} of one part changes nothing
+on the map and satisfies the column. GeoDjango has a shortcut for loading
+files, \cd{LayerMapping}, but it refuses a layer of mixed type outright,
+which is why this script reads the features one by one.
+
+\subsection{Talk to the data}
+
+Open the Django shell:
+
+\begin{code}
+python manage.py shell
+\end{code}
+
+and type these one at a time. This is the \textbf{ORM}: Python that
+Django turns into SQL.
+
+\begin{code}
+District.objects.count()
+District.objects.filter(province="Sindh").count()
+District.objects.filter(pop_2023__isnull=True).count()
+lahore = District.objects.get(name="Lahore")
+lahore.pop_2023
+lahore.geom.geom_type
+lahore.geom.num_coords
+exit()
+\end{code}
+
+The shell imports your models automatically when it starts, which is why
+\cd{District} needs no import.
+
+\begin{keypoint}{Checkpoint 5}
+The output of the loading script and of the seven shell lines.
+\end{keypoint}
+
+
+%==============================================================
+\section{The admin panel}
+
+Django builds a complete editing interface for your models: login,
+lists, search, filters and forms. You only describe what you want to see.
+
+\subsection{Create an administrator}
+
+\begin{code}
+python manage.py createsuperuser
+\end{code}
+
+Choose a username, an email address and a password. This account is for
+the admin panel only; it is not your PostgreSQL password.
+
+\subsection{Register the model}
+
+\codecap{districts/admin.py, complete}
+\begin{code}
+from django.contrib.gis import admin
+
+from .models import District
+
+
+@admin.register(District)
+class DistrictAdmin(admin.GISModelAdmin):
+    list_display = ["name", "province", "pop_2023", "area_km2"]
+    list_filter = ["province"]
+    search_fields = ["name", "pcode"]
+    ordering = ["province", "name"]
+\end{code}
+
+\begin{tabularx}{\textwidth}{@{}L{3.6cm} X@{}}
+\toprule
+\textbf{Option} & \textbf{Gives you} \\
+\midrule
+\cd{GISModelAdmin}   & A map for the geometry field, instead of a box of
+                       text \\
+\cd{list\_display}   & The columns of the list page \\
+\cd{list\_filter}    & A filter panel on the right, one entry per
+                       province \\
+\cd{search\_fields}  & A search box that matches name or P-code \\
+\bottomrule
+\end{tabularx}
+
+\subsection{Explore it}
+
+Run the server and log in at \cdb{http://127.0.0.1:8000/admin/}.
+
+\begin{enumerate}
+  \item The home page lists \textbf{Users} and \textbf{Groups}, which
+        Django provides, and \textbf{Districts}, which you registered.
+  \item Open Districts. Filter by Sindh: the count above the table reads
+        29. Search for \cd{karachi}.
+  \item Click a column header to sort. Sort by population.
+  \item Open Lahore. The geometry appears on an OpenStreetMap basemap,
+        drawn by OpenLayers. Zoom in on it.
+  \item Change Lahore's population to any other number and Save. In
+        pgAdmin, run the query below and confirm that the database has
+        changed. Then set the figure back to 13004135.
+  \item Click \textbf{History} on Lahore's page to see who changed what.
+\end{enumerate}
+
+\begin{code}
+SELECT name, pop_2023 FROM districts_district WHERE name = 'Lahore';
+\end{code}
+
+\paragraph{What just happened}
+The admin did not edit a copy. Every save is an \cd{UPDATE} on the
+PostGIS table, and the change history is itself stored in a table that
+\cd{migrate} created. Editing the geometry on the map works the same
+way: the shape is sent back as geometry and written to the \cd{geom}
+column.
+
+\begin{keypoint}{The admin is for people you trust}
+Anyone who can log in can change or delete every row. It is a tool for
+the people who maintain the data, not a page for the public. In
+\textbf{Users} you can create accounts with fewer permissions, for
+example one that can change districts but not delete them.
+\end{keypoint}
+
+\begin{keypoint}{Checkpoint 6}
+Three screenshots: the district list filtered to one province; Lahore's
+page with its map; and the pgAdmin query showing your changed
+population.
+\end{keypoint}
+
+
+%==============================================================
+\section{Leaflet, fed by Django}
+
+In Labs 2 and 3, Leaflet fetched \cd{data/districts.geojson}, a file.
+Now it fetches a URL, and Django builds the answer from the database each
+time it is asked.
+
+\subsection{Two views}
+
+A \textbf{view} is a Python function that receives a request and returns
+a response.
+
+\codecap{districts/views.py}
+\begin{code}
+from django.core.serializers import serialize
+from django.http import HttpResponse
+from django.shortcuts import render
+
+from .models import District
+
+
+def map_page(request):
+    return render(request, "districts/map.html")
+
+
+def districts_geojson(request):
+    districts = District.objects.all()
+
+    # /api/districts/?province=Sindh returns one province only
+    province = request.GET.get("province")
+    if province:
+        districts = districts.filter(province=province)
+
+    data = serialize(
+        "geojson",
+        districts,
+        geometry_field="geom",
+        fields=["name", "province", "pop_2023", "area_km2"],
+    )
+    return HttpResponse(data, content_type="application/geo+json")
+\end{code}
+
+\cd{serialize("geojson", ...)} turns rows into a GeoJSON
+FeatureCollection: the geometry field becomes each feature's
+\cd{geometry}, the listed fields become its \cd{properties}.
+
+\subsection{Two URLs}
+
+Create a new file in the app:
+
+\codecap{districts/urls.py, new file}
+\begin{code}
+from django.urls import path
+
+from . import views
+
+urlpatterns = [
+    path("", views.map_page, name="map"),
+    path("api/districts/", views.districts_geojson, name="districts-geojson"),
+]
+\end{code}
+
+and include it from the project:
+
+\codecap{webgis/urls.py}
+\begin{code}
+from django.contrib import admin
+from django.urls import include, path
+
+urlpatterns = [
+    path("admin/", admin.site.urls),
+    path("", include("districts.urls")),
+]
+\end{code}
+
+Run the server and open \cdb{http://127.0.0.1:8000/api/districts/}. The
+browser shows GeoJSON, built from PostGIS. Then try
+\cdb{http://127.0.0.1:8000/api/districts/?province=Sindh} and compare
+the number of features.
+
+\subsection{The map page}
+
+Django looks for templates in a \cd{templates} folder inside each app.
+Create the folders \cdb{districts/templates/districts/}, and in the
+innermost one the file \cd{map.html}.
+
+\codecap{districts/templates/districts/map.html}
+\begin{code}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Districts from PostGIS</title>
+  <link rel="stylesheet"
+        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0;
+           color: #23373b; background: #f4f6f6; }
+    header { padding: 16px 24px 12px; }
+    h1 { margin: 0; font-size: 22px; }
+    .subtitle { margin: 4px 0 0; color: #5b6a6e; }
+    #map { height: calc(100vh - 90px); min-height: 400px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Districts from PostGIS</h1>
+    <p class="subtitle">
+      <span id="count">loading...</span>, served by Django from the database.
+    </p>
+  </header>
+
+  <div id="map"></div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script>
+    const DISTRICTS_URL = "{% url 'districts-geojson' %}";
+
+    const map = L.map('map', {
+      maxBounds: [[21.5, 58.5], [39.0, 80.5]],
+      maxBoundsViscosity: 1.0,
+      minZoom: 5
+    }).setView([30.3753, 69.3451], 5);
+
+    L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    const colours = {
+      'Punjab': '#1b9e77', 'Sindh': '#d95f02', 'Khyber Pakhtunkhwa': '#7570b3',
+      'Balochistan': '#e7298a', 'Islamabad': '#66a61e',
+      'Azad Kashmir': '#e6ab02', 'Gilgit Baltistan': '#a6761d'
+    };
+
+    function show(value) {
+      return value === null || value === undefined
+        ? 'not recorded' : value.toLocaleString();
+    }
+
+    async function loadDistricts() {
+      const response = await fetch(DISTRICTS_URL);
+      if (!response.ok) {
+        console.error('Request failed with status', response.status);
+        return;
+      }
+      const data = await response.json();
+
+      const layer = L.geoJSON(data, {
+        style: function (feature) {
+          return {
+            color: '#ffffff',
+            weight: 1,
+            fillColor: colours[feature.properties.province] || '#888888',
+            fillOpacity: 0.7
+          };
+        },
+        onEachFeature: function (feature, featureLayer) {
+          const p = feature.properties;
+          featureLayer.bindTooltip(p.name + ', ' + p.province, { sticky: true });
+        }
+      }).addTo(map);
+
+      map.fitBounds(layer.getBounds());
+      document.getElementById('count').textContent =
+        data.features.length + ' districts';
+    }
+
+    loadDistricts();
+  </script>
+</body>
+</html>
+\end{code}
+
+Open \cdb{http://127.0.0.1:8000/}. Hover over the districts.
+
+\paragraph{\texttt{\{\% url 'districts-geojson' \%\}}}
+Django runs the template before the browser sees it. This tag is
+replaced with the URL that \cd{urls.py} named \cd{districts-geojson},
+so the page reads \cd{const DISTRICTS\_URL = "/api/districts/";}. Press
+\cd{Ctrl+U} in the browser to see the page as it arrived. If you ever
+move the API to another address, only \cd{urls.py} changes.
+
+\paragraph{Everything you learned still applies}
+The JavaScript is the same Leaflet as Labs 2 and 3. Only the source of
+the data changed. Change Lahore's province colour in the admin by
+editing its province name, reload the map, and see the map follow the
+database. Put it back afterwards.
+
+\begin{keypoint}{Checkpoint 7}
+A screenshot of the map at \cd{127.0.0.1:8000} with a tooltip showing,
+and one of the Network tab with the \cd{api/districts/} request selected
+and its size visible.
+\end{keypoint}
+
+
+%==============================================================
+\section{Ask PostGIS a spatial question}
+\textit{Extension exercise}
+
+So far the database has only stored and returned rows. Its real
+strength is answering spatial questions. Here the browser sends a point
+and PostGIS says which district contains it.
+
+\subsection{The view}
+
+Add to \cd{districts/views.py}, extending the imports at the top:
+
+\codecap{districts/views.py, added}
+\begin{code}
+from django.contrib.gis.geos import Point
+from django.http import JsonResponse
+
+
+def district_at(request):
+    try:
+        lat = float(request.GET["lat"])
+        lng = float(request.GET["lng"])
+    except (KeyError, ValueError):
+        return JsonResponse({"error": "give lat and lng as numbers"}, status=400)
+
+    point = Point(lng, lat, srid=4326)
+    district = District.objects.filter(geom__contains=point).first()
+
+    if district is None:
+        return JsonResponse({"district": None})
+    return JsonResponse({
+        "district": district.name,
+        "province": district.province,
+        "pop_2023": district.pop_2023,
+    })
+\end{code}
+
+Add its URL to \cd{districts/urls.py}:
+
+\begin{code}
+    path("api/where/", views.district_at, name="district-at"),
+\end{code}
+
+Test it directly: \cdb{http://127.0.0.1:8000/api/where/?lat=33.6423&lng=72.9906}
+should name Islamabad.
+
+\paragraph{\texttt{Point(lng, lat)}}
+GEOS, like GeoJSON, puts longitude first. Leaflet, as always, puts
+latitude first. The view takes them by name so the order cannot be
+confused in the URL.
+
+\paragraph{\texttt{geom\_\_contains}}
+This becomes a PostGIS \cd{ST\_Contains} in SQL, and it uses the spatial
+index from Part 4 to skip every district whose bounding box does not
+include the point.
+
+\subsection{Call it from the map}
+
+In \cd{map.html}, below \cd{const DISTRICTS\_URL}, add
+\cd{const WHERE\_URL = "\{\% url 'district-at' \%\}";} and, after
+\cd{loadDistricts();}, this handler:
+
+\begin{code}
+    map.on('click', async function (e) {
+      const url = WHERE_URL + '?lat=' + e.latlng.lat + '&lng=' + e.latlng.lng;
+      const answer = await (await fetch(url)).json();
+      const text = answer.district
+        ? '<strong>' + answer.district + '</strong>, ' + answer.province +
+          '<br>Population: ' + show(answer.pop_2023)
+        : 'Not inside any district';
+      L.popup().setLatLng(e.latlng).setContent(text).openOn(map);
+    });
+\end{code}
+
+\subsection{The same question in SQL}
+
+In pgAdmin, run the same query by hand, then compare areas:
+
+\begin{code}
+SELECT name, province FROM districts_district
+WHERE ST_Contains(geom, ST_SetSRID(ST_MakePoint(72.9906, 33.6423), 4326));
+
+SELECT name,
+       round(area_km2) AS stored,
+       round((ST_Area(geom::geography) / 1e6)::numeric) AS geodesic,
+       round((ST_Area(ST_Transform(geom, 3857)) / 1e6)::numeric) AS web_mercator
+FROM districts_district
+WHERE name IN ('Lahore', 'Gilgit', 'Gwadar');
+\end{code}
+
+The second query is Part 9 of Lab 2 done in one statement. Compare the
+\cd{web\_mercator} column with the others and relate the ratio to each
+district's latitude.
+
+\begin{keypoint}{Checkpoint 8}
+A screenshot of a popup produced by clicking the map, and the result of
+the area query.
+\end{keypoint}
+
+
+%==============================================================
+\section{Commit and submit}
+
+\subsection{What not to commit}
+
+Create \cd{lab4/.gitignore}:
+
+\codecap{lab4/.gitignore}
+\begin{code}
+venv/
+__pycache__/
+*.pyc
+db.sqlite3
+\end{code}
+
+The \cd{venv} folder is hundreds of megabytes and can be rebuilt at any
+time from \cd{requirements.txt}. Check with \cd{git status} that it is
+not listed before you commit.
+
+\subsection{Commit and push}
+
+\begin{code}
+cd C:\webgis-lab
+git status
+git add -A
+git commit -m "Lab 4: GeoDjango with PostGIS, admin and Leaflet"
+git push
+\end{code}
+
+\begin{keypoint}{This lab has no live URL}
+GitHub Pages serves files; it cannot run Python or a database. This
+project runs only on your own machine for now. Putting it on a real
+server is a later lab. Your submission is the repository and the report.
+\end{keypoint}
+
+\subsection{Write the report}
+
+Create \cd{lab4/report.md} containing:
+
+\begin{enumerate}
+  \item Your checkpoint screenshots.
+  \item The version numbers of Python, Django, PostgreSQL, PostGIS and
+        GDAL on your machine.
+  \item Every installation error you met, copied in full, and what fixed
+        it. If nothing went wrong, say so.
+  \item The area table from Part 8, if you completed it.
+  \item Your answers to the questions below.
+\end{enumerate}
+
+\subsection{Questions}
+
+\begin{enumerate}
+  \item In Labs 2 and 3, every visitor downloaded the whole GeoJSON file.
+        What can a page backed by Django and PostGIS do instead? Give
+        two examples from this lab.
+  \item Why does \cd{settings.py} read the database password from an
+        environment variable, instead of containing the password itself?
+  \item In Part 4, the SQL ends with an index created
+        \cd{USING GIST}. What does it do, and which query in this lab
+        benefits from it?
+  \item The loading script wraps some geometries in a
+        \cd{MultiPolygon}. What would happen without that step, and why?
+  \item Who should have an admin login for a district dataset like this,
+        and who should not?
+  \item Leaflet takes \cd{[lat, lng]} and \cd{Point} takes
+        \cd{(lng, lat)}. Where in this lab is each order used, and how
+        does the extension's URL avoid confusing them?
+\end{enumerate}
+
+\subsection{Marking}
+
+\begin{tabularx}{\textwidth}{@{}X r@{}}
+\toprule
+\textbf{Item} & \textbf{Marks} \\
+\midrule
+Django project created and running                          & 10 \\
+PostgreSQL and PostGIS installed, \cd{webgis} database ready & 15 \\
+Django connected to PostGIS, migrations applied             & 15 \\
+District model, loaded with 160 districts                   & 15 \\
+Admin registered and explored, with the database edit       & 10 \\
+Leaflet map drawn from the Django API                       & 15 \\
+Report: versions, errors and answers to the six questions   & 20 \\
+\midrule
+Extension in Part 8                                         & +10 bonus \\
+\bottomrule
+\end{tabularx}
+
+\vspace{1em}
+Submit your repository link on LMS.
+
+
+%==============================================================
+\section*{Appendix A: Troubleshooting}
+\addcontentsline{toc}{section}{Appendix A: Troubleshooting}
+
+\begin{tabularx}{\textwidth}{@{}L{5cm} X@{}}
+\toprule
+\textbf{Message or symptom} & \textbf{Cause and fix} \\
+\midrule
+\cd{python} is not recognised &
+  Python was installed without \textbf{Add python.exe to PATH}. Run the
+  installer again, choose Modify, and tick it \\
+Running scripts is disabled on this system &
+  \cd{Set-ExecutionPolicy -Scope CurrentUser RemoteSigned}, then
+  activate again \\
+\cd{No module named django} &
+  The virtual environment is not active. The prompt must start with
+  \cd{(venv)} \\
+Could not find the GDAL library &
+  OSGeo4W is not in \cd{C:\textbackslash OSGeo4W}, or GDAL was not
+  ticked in its installer. Check that
+  \cd{C:\textbackslash OSGeo4W\textbackslash bin} contains a file named
+  \cd{gdal} followed by digits and \cd{.dll} \\
+Could not find the GEOS library &
+  As above: \cd{geos\_c.dll} must be in the same \cd{bin} folder \\
+\cd{fe\_sendauth: no password supplied} &
+  \cd{WEBGIS\_DB\_PASSWORD} is not set in this window. Run \cd{setx}
+  again if needed, then close and reopen VS Code \\
+\cd{password authentication failed for user "postgres"} &
+  The variable holds the wrong password. Run \cd{setx} with the right one
+  and reopen VS Code \\
+\cd{connection refused} on port 5432 &
+  The PostgreSQL service is not running. Start it from Windows
+  \textbf{Services} \\
+\cd{type "geometry" does not exist} &
+  \cd{CREATE EXTENSION postgis;} was not run in the \cd{webgis} database \\
+\cd{database "webgis" does not exist} &
+  Create it in pgAdmin, with exactly that name \\
+\cd{TemplateDoesNotExist: districts/map.html} &
+  The file must be at
+  \cd{districts/templates/districts/map.html}, and \cd{districts} must be
+  in \cd{INSTALLED\_APPS} \\
+\cd{NoReverseMatch} for \cd{districts-geojson} &
+  The \cd{name=} in \cd{urls.py} and the name in \cd{\{\% url \%\}} differ \\
+Map page loads, no districts &
+  Open \cd{/api/districts/} directly. An error there is a Python error;
+  an empty collection means the loading script was not run \\
+\bottomrule
+\end{tabularx}
+
+%==============================================================
+\section*{Appendix B: Reference}
+\addcontentsline{toc}{section}{Appendix B: Reference}
+
+\subsection*{Commands}
+
+\begin{code}
+venv\Scripts\Activate.ps1          activate the environment
+pip install -r requirements.txt    install what the project needs
+python manage.py runserver         start the development server
+python manage.py makemigrations    record a change to the models
+python manage.py migrate           apply it to the database
+python manage.py sqlmigrate APP N  show the SQL of a migration
+python manage.py shell             a Python prompt with Django loaded
+python manage.py createsuperuser   an admin account
+\end{code}
+
+\subsection*{The pieces and where they live}
+
+\begin{tabularx}{\textwidth}{@{}L{5cm} X@{}}
+\toprule
+\textbf{File} & \textbf{Role} \\
+\midrule
+\cd{webgis/settings.py}  & Database, installed apps, OSGeo4W paths \\
+\cd{webgis/urls.py}      & Sends \cd{admin/} to the admin, everything
+                           else to the app \\
+\cd{districts/models.py} & The table \\
+\cd{districts/load.py}   & Fills it from GeoJSON \\
+\cd{districts/admin.py}  & How the admin shows it \\
+\cd{districts/views.py}  & What each URL returns \\
+\cd{districts/urls.py}   & Which URL calls which view \\
+\cd{districts/templates/} & The HTML Django sends to the browser \\
+\bottomrule
+\end{tabularx}
+
+\subsection*{Optional, if you finish everything}
+
+\begin{enumerate}
+  \item Add a province drop-down to the map page that calls
+        \cd{/api/districts/?province=...}, so the filtering happens in the
+        database rather than in the browser.
+  \item Add a \cd{Facility} model with a \cd{PointField}, register it in
+        the admin, and add three facilities by clicking on the admin map.
+  \item In the admin, create a second user who can change districts but
+        not delete them, and log in as that user to check.
+  \item Show the 25 districts without census data in grey, using the
+        \cd{pop\_2023} property the API already sends.
+\end{enumerate}
+
+\end{document}

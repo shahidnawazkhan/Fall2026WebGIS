@@ -515,3 +515,62 @@ footer p { margin: 0; max-width: 560px; }
 @media (max-width: 560px) {
   .discussion { padding: 14px; }
 }
+
+/* ---- lab page: a three-step flow, and a screenshot gallery ---- */
+
+.flow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 18px 0 20px;
+  flex-wrap: wrap;
+}
+
+.flow div {
+  flex: 1 1 140px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 14px;
+  text-align: center;
+}
+
+.flow strong { display: block; font-family: var(--font-head); color: var(--ink); }
+.flow span { font-size: 13px; color: var(--ink-faint); }
+.flow i { font-style: normal; color: var(--accent); font-size: 20px; }
+
+.shots {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+
+.shots figure {
+  margin: 0;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow);
+}
+
+.shots figure.wide { grid-column: 1 / -1; }
+
+.shots img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-bottom: 1px solid var(--line);
+}
+
+.shots figcaption {
+  padding: 12px 16px 14px;
+  font-size: 14px;
+  color: var(--ink-soft);
+}
+
+@media (max-width: 720px) {
+  .shots { grid-template-columns: 1fr; }
+  .flow i { transform: rotate(90deg); margin: 0 auto; }
+  .flow div { flex-basis: 100%; }
+}
