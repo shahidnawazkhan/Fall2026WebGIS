@@ -14,7 +14,7 @@ Installing Django, switching it from SQLite to PostgreSQL with PostGIS, a first 
 
 | Path | Contents |
 |------|----------|
-| `requirements.txt` | Django 6.1 and the psycopg PostgreSQL driver |
+| `requirements.txt` | Django 6.1 and the psycopg PostgreSQL driver (tested on Python 3.13 and 3.14) |
 | `webgis/settings.py` | PostGIS database, `django.contrib.gis`, and the OSGeo4W setup GeoDjango needs on Windows |
 | `districts/models.py` | The `District` model with a `MultiPolygonField` |
 | `districts/load.py` | Loads `data/districts.geojson` into PostGIS |

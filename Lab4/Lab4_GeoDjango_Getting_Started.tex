@@ -201,9 +201,12 @@ went wrong on your machine and how you fixed it.
 
 \subsection{Check for Python, and install it if needed}
 
-Django 6.1 needs \textbf{Python 3.12 or later}. Many machines already
-have a Python, sometimes an old one installed by another program, so
-check before installing anything.
+Django 6.1 runs on \textbf{Python 3.12, 3.13 or 3.14}. This lab uses
+\textbf{Python 3.14}. Python 3.15 is newer, but Django 6.1 does not yet
+list it as supported, so do not use it for this course yet.
+
+Many machines already have a Python, sometimes an old one installed by
+another program, so check before installing anything.
 
 \paragraph{Where to check}
 Open PowerShell: press the Windows key, type \cd{powershell}, and press
@@ -230,33 +233,50 @@ Find the line that matches what PowerShell printed.
 \toprule
 \textbf{You see} & \textbf{What to do} \\
 \midrule
-\cd{Python 3.12.x}, \cd{3.13.x} or higher &
+\cd{Python 3.12.x}, \cd{3.13.x} or \cd{3.14.x} &
   You have what you need. Skip to section 1.2 \\
+\cd{Python 3.15.x} &
+  Too new for Django 6.1 at present. Install 3.14 as below, next to it,
+  and use \cd{py -3.14} as shown at the end of this section \\
 \cd{Python 3.11.x} or lower &
-  Too old for Django 6.1. Install 3.13 as below. The old one can stay;
+  Too old for Django 6.1. Install 3.14 as below. The old one can stay;
   the two do not conflict \\
 \cd{Python was not found; run without arguments to install from the
   Microsoft Store} &
   Python is not installed. That message comes from a Windows shortcut,
-  not from Python. Install 3.13 as below \\
+  not from Python. Install 3.14 as below \\
 \cd{python : The term 'python' is not recognized} &
   Python is not installed, or was installed without being added to
-  \cd{PATH}. Install 3.13 as below \\
+  \cd{PATH}. Install 3.14 as below \\
 Nothing at all, or the Microsoft Store opens &
-  The same Windows shortcut. Install 3.13 as below \\
+  The same Windows shortcut. Install 3.14 as below \\
 \bottomrule
 \end{tabularx}
 
 \paragraph{Download the installer}
 
+Go to \cdb{https://www.python.org/downloads/windows/}. The page is titled
+\textbf{Python Releases for Windows}, and it lists every version, newest
+first.
+
 \begin{enumerate}
-  \item Go to \cdb{https://www.python.org/downloads/windows/}.
-  \item Under \textbf{Stable Releases}, find the newest
-        \textbf{Python 3.13} release.
+  \item Ignore the two links at the very top. One is the
+        \textbf{Python install manager}, a newer tool described below;
+        the other is the latest release, \textbf{Python 3.15}, which is
+        too new for Django 6.1.
+  \item Under \textbf{Stable Releases} on the left, scroll past
+        \textbf{Python install manager} and \textbf{Python 3.15.0} to the
+        first entry that starts \textbf{Python 3.14}, for example
+        \textbf{Python 3.14.8}.
   \item Under it, click \textbf{Windows installer (64-bit)}. The file is
-        called something like \cd{python-3.13.9-amd64.exe}; the last
-        number changes with each release, and any 3.13 is fine.
+        called something like \cd{python-3.14.8-amd64.exe}. The last
+        number changes with each release; any 3.14 is fine.
 \end{enumerate}
+
+\textbf{Pre-releases}, in the right-hand column, are test versions. Do not
+use them. Choose \textbf{(ARM64)} only if your laptop has an ARM
+processor, such as a Snapdragon; almost all lab and student laptops need
+\textbf{(64-bit)}.
 
 Do not take Python from the Microsoft Store. It installs into a
 protected folder and behaves differently with virtual environments.
@@ -271,19 +291,26 @@ protected folder and behaves differently with virtual environments.
   \item Leave \textbf{Use admin privileges when installing py.exe}
         ticked.
   \item Click \textbf{Install Now}. It installs for your user account,
-        into \cdb{C:\\Users\\<you>\\AppData\\Local\\Programs\\Python\\Python313}.
+        into \cdb{C:\\Users\\<you>\\AppData\\Local\\Programs\\Python\\Python314}.
   \item If the last screen offers \textbf{Disable path length limit},
         click it. Windows otherwise limits paths to 260 characters,
         which some Python packages exceed.
   \item Click Close.
 \end{enumerate}
 
-\begin{keypoint}{Without the installer}
-If you prefer the command line, this installs the same thing:
+\begin{keypoint}{Two other ways to install}
+If you prefer the command line, this installs the same thing as the
+installer:
 
 \begin{code}
-winget install Python.Python.3.13
+winget install Python.Python.3.14
 \end{code}
+
+The \textbf{Python install manager} at the top of the download page is
+the newer way, and python.org will eventually replace the installers with
+it. Once it is installed, \cd{py install 3.14} adds Python 3.14 and
+\cd{py list} shows what you have. It works, but the steps in this
+handout assume the ordinary installer.
 \end{keypoint}
 
 \paragraph{Check that it worked}
@@ -297,11 +324,11 @@ pip --version
 where.exe python
 \end{code}
 
-\cd{python -{}-version} should now print \cd{Python 3.13} followed by a
-release number, and \cd{pip -{}-version} should mention \cd{python 3.13}.
+\cd{python -{}-version} should now print \cd{Python 3.14} followed by a
+release number, and \cd{pip -{}-version} should mention \cd{python 3.14}.
 \cd{where.exe python} lists every \cd{python.exe} on \cd{PATH} in the
 order Windows searches them. The first line must be the one in
-\cd{...\textbackslash Programs\textbackslash Python\textbackslash Python313}.
+\cd{...\textbackslash Programs\textbackslash Python\textbackslash Python314}.
 
 \begin{keypoint}{If the first line is \texttt{WindowsApps\textbackslash python.exe}}
 That is the Microsoft Store shortcut, and it is being found before your
@@ -313,14 +340,14 @@ aliases}, and switch off the two entries for \cd{python.exe} and
 
 \begin{keypoint}{If you have more than one Python}
 When \cd{py -{}-list} shows several versions and \cd{python -{}-version}
-still reports an old one, name the version explicitly when you create
+still reports one outside 3.12 to 3.14, name the version explicitly when you create
 the virtual environment in the next section:
 
 \begin{code}
-py -3.13 -m venv venv
+py -3.14 -m venv venv
 \end{code}
 
-Once that environment is activated, \cd{python} inside it is 3.13,
+Once that environment is activated, \cd{python} inside it is 3.14,
 whatever the rest of the machine uses.
 \end{keypoint}
 
